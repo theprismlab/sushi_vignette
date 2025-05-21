@@ -8,6 +8,10 @@ output:
     toc_depth: 3
     number_sections: TRUE
     toc_float: TRUE
+    tabset: TRUE
+    highlight: tango
+    df_print: paged
+    css: styles.css
 ---
 
 ```{r toggle setup, echo=FALSE, results='asis'}
@@ -80,7 +84,9 @@ The sushi pipeline github repository can be found at https://github.com/cmap/sus
 
 This vignette is located in the `sushi/vignette/` folder.
 
-Sample data used in this vignette is found in <this MTS 28 portal page> using the encorafenib compound.
+Sample data used in this vignette is found on *<MTS 28 portal page to come>* using the encorafenib compound.
+
+Formats of input files can be found *this will be an excel download, currently a GSheet*
 
 ### From sequencing output to pre-normalized counts
 This section describes steps taken to prepare PRISM sequencing data for normalization. **These steps are for internal processing only, and documentation is provided for completeness.**
@@ -96,7 +102,9 @@ Next, barcodes are mapped to their corresponding cell line or control barcode na
 
 # Data Processing
 
-## Normalizing raw counts
+## Normalizing raw counts {.tabset}
+
+### Description
 
 To correct for amplification differences between wells, each PCR well contains 10 spiked-in control barcodes at known concentrations. In **CB_normalize** (`sushi/scripts/CB_normalize.R`), the raw counts obtained in each well are linearly proportional to the input amount of each barcode. The median of this proportionality factor is then used to scale raw counts in each well and obtain normalized counts. CB_normalize requires `filtered_counts.csv` and `CB_meta.csv` files as inputs. 
 
@@ -104,6 +112,8 @@ For each combination of PCR plate, PCR well, and control barcode dosage: the dos
 
 You may recreate the necessary input from your level 3 data or normalized and raw counts data download found on your PRISM Portal page and using the following commands in your terminal window:
 
+
+### Example
 ```{r example normalization, echo = T, eval = F}
 # Load into environment ----
 require(magrittr)
@@ -125,17 +135,19 @@ normalized_counts = normalize(X= filtered_counts, id_cols= input_id_cols,
 ```
 
 IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well
-```{r ex cb ladder, echo = T, eval = F}
+```{r ex cb ladder, echo = F, eval = F}
 from normalized counts outout make CB ladder from one well
 ```
 
 
-## Filtering based on quality control
+## Filtering based on quality control {.tabset}
 
+### General Description
 At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/src/qc_tables.R`).
 
+### Measures of cell line quality {.tabset}
 
-### Measures of screen quality
+#### Description
 The following four metrics define cell line failure on a particular PCR plate. The cell line may pass on other PCR plates containing treatment replicates. If only one replicate of the cell line passes across all PCR plates containing the cell line, then the cell is deemed to have failed at the pert plate (set of replicates that may be across PCR plate) level. Log2-viability data from passing cell lines are provided in downloads files. 
 
 * The cell line is sufficiently abundant in the negative control condition (`nc_raw_counts_threshold`). In particular, a cell line needs to have a median raw count > 40 across negative control wells on the PCR plate
@@ -152,8 +164,25 @@ $$
 
 where $FPR$ is the false positive rate and $FNR$ is the false negative rate. Specifically, for each cell line in a replicate plate, we identify the threshold log2-normalized counts value that minimizes the sum of errors, defined as the fraction of positive control log2-normalized counts replicates exceeding the threshold and the fraction of negative control log2-normalized counts replicates falling below it, and report the corresponding error rate.
 
-### Measures of well quality
+#### Example
+```{r example qc cell line, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/qc_table.R")
 
+# Set up inputs ----
+
+
+# Compute cell line QC ----
+
+
+```
+
+### Measures of well quality {.tabset}
+
+#### Description
 The following three metrics define PCR well failure on a particular PCR plate. Passing wells have their data provided in normalized counts data.
 
 * We filter out wells that do not have sufficient amplification, determined by a threshold on the median raw count of the control barcodes in the well. (We do not have a threshold on reads from cell lines since a strong treatment may kill all the cells.)
@@ -162,7 +191,25 @@ The following three metrics define PCR well failure on a particular PCR plate. P
 
 * We filter out wells where there may have been control barcode contamination, estimated by the linearity of the relationship between control barcode count and dose using Spearman correlation (`cb_spearman_threshold`) and Mean Absolute Error (`cb_mae_threshold`) on a logarithmic scale.
 
-## Calculating log2 fold changes
+#### Example
+```{r example qc well, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/qc_table.R")
+
+# Set up inputs ----
+
+
+# Compute well QC ----
+
+
+```
+
+## Calculating log2 fold changes {.tabset}
+
+### Description
 
 A PRISM screen incorporates multiple types of replicates to enhance the reliability, generalizability, and quality control of the results.
 
@@ -176,11 +223,45 @@ L2FC = log2( \frac{x_t}{x_{nc}})
 $$
 
 where $x_t$ is mean normalized counts across technical reps and
-    $x_nc$ is mean normalized counts in negative control across technical replicates and
+    $x_{nc}$ is the mean normalized counts of negative control taken across technical replicates, and then median across their biological replicates
 
-## Collapsing log2 fold changes across replicates
+### Example
+```{r example l2fc, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/compute.R")
 
-From l2fcs calculated in the previous module, **collapse_replicates** (`sushi/scripts/collapse_replicates.R`) uses L2FC and takes the median across biological replicates. This gives us one median L2FC per cell line in each treatment condition.
+# Set up inputs ----
+
+
+# Calculate l2fcs ----
+
+
+```
+
+## Collapsing log2 fold changes across replicates {.tabset}
+
+### Description
+From L2FCs calculated in the previous module, **collapse_replicates** (`sushi/scripts/collapse_replicates.R`) uses L2FC and takes the median across biological replicates. This gives us one median L2FC per cell line in each treatment condition.
+
+
+### Example
+```{r example collapsed l2fc, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/collapse_bio_reps.R")
+
+# Set up inputs ----
+
+
+# Collapsed l2fcs ----
+
+
+```
 
 ## Spliting based on projects
 
@@ -189,7 +270,9 @@ Note that this functionality is not handled within Sushi itself but is part of a
 
 # Downstream Analysis
 
-## Dose response module
+## Dose response module {.tabset}
+
+### General Description
 
 The **dose_response** module (`sushi/scripts/dose_reponse.R`) fits 4-parameter dose-response curves (DRCs) to the viability (fold-change with respect to DMSO) of each cell line in all replicates that pass QC. The four parameters are upper limit ($UL$), lower limit ($LL$), slope ($s$), and inflection point ($EC50$).
 The equation for the curve is defined as:
@@ -198,7 +281,7 @@ $$
 f(x) = UL + \frac{LL-UL}{1 + \left(\frac{x}{EC50}\right)^s}
 $$
 
-### Additional details the dose-response curve fitting
+### Additional details
 
 The fit is perform with the following restrictions:
 
@@ -221,20 +304,74 @@ $$
 where $FC_i$ is the fold change value, $i$ indexes the data point, and $n$ is the number of data points in the profile.
 In scenarios where no fit converges, fit parameters for the cell line are not provided but the Riemann AUC is provided as it is independent of the fit.
 
+### Example
+
+```{r example drc, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/drc_table.R")
+
+# Set up inputs ----
+
+
+# FIT DRC curves ----
+
+
+```
 
 ## Identifying biomarkers
 
+### Univariate biomarker analysis {.tabset}
+
+#### Description
+
+For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
+
+#### Example
+```{r example univariate biomarker, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/biomarker.R")
+
+# Set up inputs ----
 
 
-Univariate associations between the PRISM sensitivity profiles and genomic features or genetic dependencies are computed using a simple linear regression model and omics data publicly available on the DepMap portal. 
+# Calculate biomarkers ----
 
-For each log2 viability at each dose (including log2AUC), multivariate models are trained and fit using the molecular characterizations and genetic dependencies of the PRISM cell lines. The resulting importance of various features can be used to suggest potential biomarkers of compound response or to inform potential hypotheses for mechanisms of action. The dose or curve-level statistic used is noted in the “Dose” column.
+
+```
+
+### Multivariate biomarker analysis {.tabset}
+
+#### Description
+
+For each log2 viability at each dose (including $log_2AUC$), multivariate models are trained and fit using the molecular characterizations and genetic dependencies of the PRISM cell lines. The resulting importance of various features can be used to suggest potential biomarkers of compound response or to inform potential hypotheses for mechanisms of action. The dose or curve-level statistic used is noted in the “Dose” column.
 
 Random forest models are trained using:
 CCLE model: Cancer Cell Line Encyclopedia (CCLE) features (copy number alterations, RNA expression, mutation status and lineage annotation)
 Complete model: Cancer Cell Line Encyclopedia (CCLE) features + reverse phase protein array data (RPPA) + CRISPR + miRNA + metabolomics (MET).
 For each feature of each model, feature importance is computed after normalization (the sum of the importances is set to 1 in each model) and tabulated along with the accuracy measures. High variable importance and high accuracy for a given feature suggests that it is important for predicting sensitivity (at the given dose modeled). The feature importances are not directional quantities. 
 
+#### Example
+
+```{r example multivariate biomarker, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/biomarker.R")
+
+# Set up inputs ----
+
+
+# Calculate biomarkers ----
+
+
+```
 
 ## Frequently asked questions
 
