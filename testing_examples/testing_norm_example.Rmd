@@ -1,0 +1,38 @@
+---
+title: "testing_norm_example"
+author: "Ursula Widocki"
+date: "2025-05-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Set up this environment
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+# Code on vignette
+```{r example normalization, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/normalize.R")
+
+# Set up inputs ----
+filtered_counts = subsetofnormalizedrawcountsdownload
+CB_meta = subsetofnormalizedrawcountsdownload
+input_pseudocount = 20
+input_id_cols = c("pcr_plate", "pcr_well")
+
+# Normalize your counts ----
+normalized_counts = normalize(X = filtered_counts, 
+                              id_cols = input_id_cols,
+                              CB_meta = CB_meta, 
+                              pseudocount = input_pseudocount)
+
+```

@@ -1,0 +1,61 @@
+---
+title: "testing_l2fc_example"
+author: "Ursula Widocki"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Example
+```{r example l2fc, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/compute_l2fc.R")
+
+# Set up inputs ----
+normalized_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")
+control_type <- "ctl_vehicle"
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+ctrl_cols <- c("cell_set", "day")
+count_col_name <- "log2_normalized_n"
+count_threshold <- 40
+cell_line_cols <- c("lua", "depmap_id", "pool_id")
+
+## For filtering failed cell lines
+filter_failed_lines <- TRUE
+qc_path <- data.table::fread("~/Desktop/data/vignette_test_data/data/qc_table.csv")
+out <- "~/Desktop/data/vignette_test_data/data/"
+
+# Calculated log2 fold changes
+l2fc= compute_l2fc(normalized_counts = normalized_counts, 
+                   control_type = control_type, 
+                   sig_cols = sig_cols, 
+                   ctrl_cols = ctrl_cols, 
+                   count_col_name = count_col_name, 
+                   count_threshold = count_threshold,
+                   cell_line_cols = cell_line_cols)
+
+# If filter_failed_lines is TRUE, filter out failed cell lines from the output file
+if (args$filter_failed_lines) {
+  # Write the unfiltered l2fc file
+  print("Writing out unfiltered l2fc file ...")
+  l2fc_unfiltered_outpath = paste(out, "l2fc_original.csv", sep= "/")
+  write.csv(l2fc, l2fc_unfiltered_outpath, row.names= FALSE, quote= FALSE)
+  
+  # Read in QC file and filter lines that fail for an entire pert_plate
+  join_cols = c(cell_line_cols, "pert_plate")
+  qc_data = data.table::fread(qc_path, header= TRUE, sep= ',', data.table= FALSE)
+  failed_lines_pert_plate = qc_data %>% filter(qc_pass_pert_plate == FALSE) %>% select(all_of(join_cols))
+
+  l2fc = l2fc %>% anti_join(failed_lines_pert_plate, by= join_cols)
+}
+
+```
+
+
+

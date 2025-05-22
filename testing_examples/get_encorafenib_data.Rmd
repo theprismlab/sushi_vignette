@@ -1,0 +1,39 @@
+---
+title: "get_encorafenib_data"
+author: "Ursula Widocki"
+date: "2025-05-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+# Read in downloads
+```{r}
+# Downloaded from the MTS_SEQ004_B40_COMPOUNDS Downloads page on the PRISM portal
+
+norm_counts <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_normalized_counts.csv")
+l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_l2fc.csv")
+collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_collapsed_l2fc.csv")
+```
+
+# Filter for encorafenib
+```{r}
+norm_counts %<>% filter(pert_name == "ENCORAFENIB" | pert_type == "ctl_vehicle")
+l2fc %<>% filter(pert_name == "ENCORAFENIB")
+collapsed_l2fc %<>% filter(pert_name == "ENCORAFENIB")
+```
+
+# Write data into new folders
+```{r}
+write.csv(l2fc, "~/Desktop/data/vignette_test_data/data/l2fc.csv", row.names = F)
+write.csv(collapsed_l2fc, "~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv", row.names = F)
+```
+
+
