@@ -231,13 +231,45 @@ where $x_t$ is mean normalized counts across technical reps and
 require(magrittr)
 require(tidyverse)
 source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/compute.R")
+source("~/sushi/scripts/src/compute_l2fc.R")
 
 # Set up inputs ----
+normalized_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")
+control_type <- "ctl_vehicle"
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+ctrl_cols <- c("cell_set", "day")
+count_col_name <- "log2_normalized_n"
+count_threshold <- 40
+cell_line_cols <- c("lua", "depmap_id", "pool_id")
 
+## For filtering failed cell lines
+filter_failed_lines <- TRUE
+qc_path <- data.table::fread("~/Desktop/data/vignette_test_data/data/qc_table.csv")
+out <- "~/Desktop/data/vignette_test_data/data/"
 
-# Calculate l2fcs ----
+# Calculated log2 fold changes
+l2fc= compute_l2fc(normalized_counts = normalized_counts, 
+                   control_type = control_type, 
+                   sig_cols = sig_cols, 
+                   ctrl_cols = ctrl_cols, 
+                   count_col_name = count_col_name, 
+                   count_threshold = count_threshold,
+                   cell_line_cols = cell_line_cols)
 
+# If filter_failed_lines is TRUE, filter out failed cell lines from the output file
+if (args$filter_failed_lines) {
+  # Write the unfiltered l2fc file
+  print("Writing out unfiltered l2fc file ...")
+  l2fc_unfiltered_outpath = paste(out, "l2fc_original.csv", sep= "/")
+  write.csv(l2fc, l2fc_unfiltered_outpath, row.names= FALSE, quote= FALSE)
+  
+  # Read in QC file and filter lines that fail for an entire pert_plate
+  join_cols = c(cell_line_cols, "pert_plate")
+  qc_data = data.table::fread(qc_path, header= TRUE, sep= ',', data.table= FALSE)
+  failed_lines_pert_plate = qc_data %>% filter(qc_pass_pert_plate == FALSE) %>% select(all_of(join_cols))
+
+  l2fc = l2fc %>% anti_join(failed_lines_pert_plate, by= join_cols)
+}
 
 ```
 
@@ -252,15 +284,18 @@ From L2FCs calculated in the previous module, **collapse_replicates** (`sushi/sc
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/collapse_bio_reps.R")
+source("~/Desktop/sushi/scripts/src/kitchen_utensils.R")
+source("~/Desktop/sushi/scripts/src/collapse_bio_reps.R")
 
 # Set up inputs ----
-
+l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+cell_line_cols <- c("depmap_id", "lua", "pool_id")
 
 # Collapsed l2fcs ----
-
-
+collapsed_l2fc = collapse_bio_reps(l2fc = l2fc, 
+                                  sig_cols = sig_cols, 
+                                  cell_line_cols = cell_line_cols)
 ```
 
 ## Spliting based on projects
