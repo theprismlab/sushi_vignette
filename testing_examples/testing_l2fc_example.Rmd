@@ -14,8 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/compute_l2fc.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/compute_l2fc/compute_l2fc_functions.R")
 
 # Set up inputs ----
 normalized_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")

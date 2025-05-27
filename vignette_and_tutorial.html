@@ -3305,19 +3305,19 @@ independent of the fit.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/drc/dose_response_functions.R&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/Desktop/sushi/scripts/drc/dose_response_functions.R&quot;</span>)</span>
 <span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
 <span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
 <span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>l2fc <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/l2fc.csv&quot;</span>)</span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>cell_line_cols ,<span class="sc">-</span> <span class="fu">c</span>(<span class="st">&quot;depmap_id&quot;</span>, <span class="st">&quot;lua&quot;</span>, <span class="st">&quot;pool_id&quot;</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>cell_line_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;depmap_id&quot;</span>, <span class="st">&quot;lua&quot;</span>, <span class="st">&quot;pool_id&quot;</span>)</span>
 <span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>sig_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;cell_set&quot;</span>,<span class="st">&quot;pert_name&quot;</span>,<span class="st">&quot;pert_dose&quot;</span>,<span class="st">&quot;pert_dose_unit&quot;</span>,<span class="st">&quot;day&quot;</span>)</span>
 <span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>dose_col <span class="ot">&lt;-</span> <span class="st">&quot;pert_dose&quot;</span></span>
 <span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>l2fc_column <span class="ot">&lt;-</span> <span class="st">&quot;l2fc&quot;</span></span>
 <span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>type_col <span class="ot">&lt;-</span> <span class="st">&quot;pert_type&quot;</span></span>
 <span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>cap_for_viability <span class="ot">&lt;-</span> <span class="fl">1.5</span></span>
 <span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a></span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co"># Create treatment_columns by filtering out elements containing &quot;dose&quot; ----</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co"># Create treatment_columns by removing column names containing &quot;dose&quot; ----</span></span>
 <span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>treatment_cols <span class="ot">&lt;-</span> <span class="fu">union</span>(</span>
 <span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>  sig_cols[<span class="fu">grepl</span>(<span class="st">&quot;pert&quot;</span>, sig_cols) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">grepl</span>(<span class="st">&quot;dose&quot;</span>, sig_cols)],</span>
 <span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  sig_cols[sig_cols <span class="sc">==</span> <span class="st">&quot;day&quot;</span>]</span>
@@ -3331,6 +3331,11 @@ independent of the fit.</p>
 <span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a>                                <span class="at">l2fc_column=</span> l2fc_column,</span>
 <span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a>                                <span class="at">type_col=</span> type_col,</span>
 <span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a>                                <span class="at">cap_for_viability=</span> cap_for_viability)</span></code></pre></div>
+<p>If an error message occurs similar to</p>
+<p><code>Error in optim(startVec, opfct, hessian = TRUE, method = &quot;L-BFGS-B&quot;, lower = lowerLimits,  :    L-BFGS-B needs finite values of &#39;fn&#39;</code></p>
+<p>this is due to the the curve not being able to be fitted for some
+cell line due to factors like too few replicates or to big of a
+difference between replicate results.</p>
 </div>
 </div>
 <div id="identifying-biomarkers" class="section level2" number="4.2">

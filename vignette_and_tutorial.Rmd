@@ -346,19 +346,19 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/utils/kitchen_utensils.R")
-source("~/sushi/scripts/drc/dose_response_functions.R")
+source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
+source("~/Desktop/sushi/scripts/drc/dose_response_functions.R")
 
 # Set up inputs ----
 l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
-cell_line_cols ,- c("depmap_id", "lua", "pool_id")
+cell_line_cols <- c("depmap_id", "lua", "pool_id")
 sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
 dose_col <- "pert_dose"
 l2fc_column <- "l2fc"
 type_col <- "pert_type"
 cap_for_viability <- 1.5
 
-# Create treatment_columns by filtering out elements containing "dose" ----
+# Create treatment_columns by removing column names containing "dose" ----
 treatment_cols <- union(
   sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)],
   sig_cols[sig_cols == "day"]
@@ -375,6 +375,13 @@ dose_response= create_drc_table(LFC= l2fc,
 
 
 ```
+
+If an error message occurs similar to
+
+`Error in optim(startVec, opfct, hessian = TRUE, method = "L-BFGS-B", lower = lowerLimits,  : 
+  L-BFGS-B needs finite values of 'fn'`
+  
+this is due to the the curve not being able to be fitted for some cell line due to factors like too few replicates or to big of a difference between replicate results.
 
 ## Identifying biomarkers
 
