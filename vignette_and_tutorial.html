@@ -11,7 +11,7 @@
 
 <meta name="author" content="Ursula Widocki" />
 
-<meta name="date" content="2025-05-21" />
+<meta name="date" content="2025-05-27" />
 
 <title>PRISM Sushi Vignette and Documentation</title>
 
@@ -2824,7 +2824,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">PRISM Sushi Vignette and Documentation</h1>
 <h4 class="author">Ursula Widocki</h4>
-<h4 class="date">May 21, 2025</h4>
+<h4 class="date">May 27, 2025</h4>
 
 </div>
 
@@ -2989,18 +2989,20 @@ and using the following commands in your terminal window:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/normalize.R&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/normalize/normalize_functions.R&quot;</span>)</span>
 <span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
 <span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>filtered_counts <span class="ot">=</span> subsetofnormalizedrawcountsdownload</span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>CB_meta <span class="ot">=</span> subsetofnormalizedrawcountsdownload</span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>input_pseudocount <span class="ot">=</span> <span class="dv">20</span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>input_id_cols <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;pcr_plate&quot;</span>, <span class="st">&quot;pcr_well&quot;</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>filtered_counts <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/filtered_counts.csv&quot;</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>CB_meta <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/CB_meta.csv&quot;</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>pseudocount <span class="ot">&lt;-</span> <span class="dv">20</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>input_id_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;pcr_plate&quot;</span>, <span class="st">&quot;pcr_well&quot;</span>)</span>
 <span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a></span>
 <span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co"># Normalize your counts ----</span></span>
-<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>normalized_counts <span class="ot">=</span> <span class="fu">normalize</span>(<span class="at">X=</span> filtered_counts, <span class="at">id_cols=</span> input_id_cols,</span>
-<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>                              <span class="at">CB_meta=</span> CB_meta, <span class="at">pseudocount=</span> input_pseudocount)</span></code></pre></div>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>normalized_counts <span class="ot">=</span> <span class="fu">normalize</span>(<span class="at">X =</span> filtered_counts, </span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>                              <span class="at">id_cols =</span> input_id_cols,</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>                              <span class="at">CB_meta =</span> CB_meta, </span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>                              <span class="at">pseudocount =</span> pseudocount)</span></code></pre></div>
 <p>IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well</p>
 </div>
 </div>
@@ -3067,8 +3069,8 @@ the corresponding error rate.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/qc_table.R&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/qc_tables/qc_table_functions.R&quot;</span>)</span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
 <span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
@@ -3105,8 +3107,8 @@ control barcode count and dose using Spearman correlation
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/qc_table.R&quot;</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/qc_table/qc_table_functions.R&quot;</span>)</span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
@@ -3141,7 +3143,7 @@ typically fewer technical replicates than biological replicates and
 there is less variability between technical replicates. Finally, log2
 fold change is computed by comparing these means to those of the
 negative control samples, using the formula: <span class="math display">\[
-L2FC = log2( \frac{x_t}{x_{nc}})
+L2FC = log_2( \frac{x_t}{x_{nc}})
 \]</span></p>
 <p>where <span class="math inline">\(x_t\)</span> is mean normalized
 counts across technical reps and <span class="math inline">\(x_{nc}\)</span> is the mean normalized counts of
@@ -3153,13 +3155,46 @@ across their biological replicates</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/compute.R&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/compute_l2fc/compute_l2fc_functions.R&quot;</span>)</span>
 <span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
 <span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co"># Calculate l2fcs ----</span></span></code></pre></div>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>normalized_counts <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/normalized_counts.csv&quot;</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>control_type <span class="ot">&lt;-</span> <span class="st">&quot;ctl_vehicle&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>sig_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;cell_set&quot;</span>,<span class="st">&quot;pert_name&quot;</span>,<span class="st">&quot;pert_dose&quot;</span>,<span class="st">&quot;pert_dose_unit&quot;</span>,<span class="st">&quot;day&quot;</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>ctrl_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;cell_set&quot;</span>, <span class="st">&quot;day&quot;</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>count_col_name <span class="ot">&lt;-</span> <span class="st">&quot;log2_normalized_n&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>count_threshold <span class="ot">&lt;-</span> <span class="dv">40</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>cell_line_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;lua&quot;</span>, <span class="st">&quot;depmap_id&quot;</span>, <span class="st">&quot;pool_id&quot;</span>)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="do">## For filtering failed cell lines</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>filter_failed_lines <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>qc_path <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/qc_table.csv&quot;</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="st">&quot;~/Desktop/data/vignette_test_data/data/&quot;</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co"># Calculated log2 fold changes</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>l2fc<span class="ot">=</span> <span class="fu">compute_l2fc</span>(<span class="at">normalized_counts =</span> normalized_counts, </span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>                   <span class="at">control_type =</span> control_type, </span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>                   <span class="at">sig_cols =</span> sig_cols, </span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>                   <span class="at">ctrl_cols =</span> ctrl_cols, </span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>                   <span class="at">count_col_name =</span> count_col_name, </span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>                   <span class="at">count_threshold =</span> count_threshold,</span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>                   <span class="at">cell_line_cols =</span> cell_line_cols)</span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="co"># If filter_failed_lines is TRUE, filter out failed cell lines from the output file</span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="cf">if</span> (args<span class="sc">$</span>filter_failed_lines) {</span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>  <span class="co"># Write the unfiltered l2fc file</span></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">&quot;Writing out unfiltered l2fc file ...&quot;</span>)</span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>  l2fc_unfiltered_outpath <span class="ot">=</span> <span class="fu">paste</span>(out, <span class="st">&quot;l2fc_original.csv&quot;</span>, <span class="at">sep=</span> <span class="st">&quot;/&quot;</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>  <span class="fu">write.csv</span>(l2fc, l2fc_unfiltered_outpath, <span class="at">row.names=</span> <span class="cn">FALSE</span>, <span class="at">quote=</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>  </span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>  <span class="co"># Read in QC file and filter lines that fail for an entire pert_plate</span></span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>  join_cols <span class="ot">=</span> <span class="fu">c</span>(cell_line_cols, <span class="st">&quot;pert_plate&quot;</span>)</span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>  qc_data <span class="ot">=</span> data.table<span class="sc">::</span><span class="fu">fread</span>(qc_path, <span class="at">header=</span> <span class="cn">TRUE</span>, <span class="at">sep=</span> <span class="st">&#39;,&#39;</span>, <span class="at">data.table=</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>  failed_lines_pert_plate <span class="ot">=</span> qc_data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(qc_pass_pert_plate <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">all_of</span>(join_cols))</span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a></span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>  l2fc <span class="ot">=</span> l2fc <span class="sc">%&gt;%</span> <span class="fu">anti_join</span>(failed_lines_pert_plate, <span class="at">by=</span> join_cols)</span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 </div>
 <div id="collapsing-log2-fold-changes-across-replicates" class="section level2 tabset" number="3.4">
@@ -3178,13 +3213,18 @@ per cell line in each treatment condition.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/collapse_bio_reps.R&quot;</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/Desktop/sushi/scripts/collapse_replicates/collapse_replicates_functions.R&quot;</span>)</span>
 <span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
 <span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co"># Collapsed l2fcs ----</span></span></code></pre></div>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>l2fc <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/l2fc.csv&quot;</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>sig_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;cell_set&quot;</span>,<span class="st">&quot;pert_name&quot;</span>,<span class="st">&quot;pert_dose&quot;</span>,<span class="st">&quot;pert_dose_unit&quot;</span>,<span class="st">&quot;day&quot;</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>cell_line_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;depmap_id&quot;</span>, <span class="st">&quot;lua&quot;</span>, <span class="st">&quot;pool_id&quot;</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co"># Collapsed l2fcs ----</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>collapsed_l2fc <span class="ot">=</span> <span class="fu">collapse_bio_reps</span>(<span class="at">l2fc =</span> l2fc, </span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>                                  <span class="at">sig_cols =</span> sig_cols, </span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>                                  <span class="at">cell_line_cols =</span> cell_line_cols)</span></code></pre></div>
 </div>
 </div>
 <div id="spliting-based-on-projects" class="section level2" number="3.5">
@@ -3265,13 +3305,32 @@ independent of the fit.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/drc_table.R&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/drc/dose_response_functions.R&quot;</span>)</span>
 <span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
 <span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co"># FIT DRC curves ----</span></span></code></pre></div>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>l2fc <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;~/Desktop/data/vignette_test_data/data/l2fc.csv&quot;</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>cell_line_cols ,<span class="sc">-</span> <span class="fu">c</span>(<span class="st">&quot;depmap_id&quot;</span>, <span class="st">&quot;lua&quot;</span>, <span class="st">&quot;pool_id&quot;</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>sig_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;cell_set&quot;</span>,<span class="st">&quot;pert_name&quot;</span>,<span class="st">&quot;pert_dose&quot;</span>,<span class="st">&quot;pert_dose_unit&quot;</span>,<span class="st">&quot;day&quot;</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>dose_col <span class="ot">&lt;-</span> <span class="st">&quot;pert_dose&quot;</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>l2fc_column <span class="ot">&lt;-</span> <span class="st">&quot;l2fc&quot;</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>type_col <span class="ot">&lt;-</span> <span class="st">&quot;pert_type&quot;</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>cap_for_viability <span class="ot">&lt;-</span> <span class="fl">1.5</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co"># Create treatment_columns by filtering out elements containing &quot;dose&quot; ----</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>treatment_cols <span class="ot">&lt;-</span> <span class="fu">union</span>(</span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>  sig_cols[<span class="fu">grepl</span>(<span class="st">&quot;pert&quot;</span>, sig_cols) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">grepl</span>(<span class="st">&quot;dose&quot;</span>, sig_cols)],</span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  sig_cols[sig_cols <span class="sc">==</span> <span class="st">&quot;day&quot;</span>]</span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>)</span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co"># FIT DRC curves ----</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a>dose_response<span class="ot">=</span> <span class="fu">create_drc_table</span>(<span class="at">LFC=</span> l2fc,</span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a>                                <span class="at">cell_line_cols=</span> cell_line_cols,</span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a>                                <span class="at">treatment_cols=</span> treatment_cols,</span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a>                                <span class="at">dose_col=</span> dose_col,</span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a>                                <span class="at">l2fc_column=</span> l2fc_column,</span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a>                                <span class="at">type_col=</span> type_col,</span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a>                                <span class="at">cap_for_viability=</span> cap_for_viability)</span></code></pre></div>
 </div>
 </div>
 <div id="identifying-biomarkers" class="section level2" number="4.2">
@@ -3296,13 +3355,14 @@ q-values</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/biomarker.R&quot;</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/biomarker/biomarker_functions.R&quot;</span>)</span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
 <span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#h5 file from taiga</span></span>
 <span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co"># Calculate biomarkers ----</span></span></code></pre></div>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co"># Calculate biomarkers ----</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#h5 file from taiga</span></span></code></pre></div>
 </div>
 </div>
 <div id="multivariate-biomarker-analysis" class="section level3 tabset" number="4.2.2">
@@ -3333,11 +3393,11 @@ quantities.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Load into environment ----</span></span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">require</span>(magrittr)</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">require</span>(tidyverse)</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/kitchen_utensils.R&quot;</span>)</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/src/biomarker.R&quot;</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;~/sushi/scripts/biomarker/biomarker_functions.R&quot;</span>)</span>
 <span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a></span>
 <span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co"># Set up inputs ----</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#h5 file</span></span>
 <span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a></span>
 <span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co"># Calculate biomarkers ----</span></span></code></pre></div>
 </div>

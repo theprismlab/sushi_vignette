@@ -350,9 +350,28 @@ source("~/sushi/scripts/utils/kitchen_utensils.R")
 source("~/sushi/scripts/drc/dose_response_functions.R")
 
 # Set up inputs ----
+l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
+cell_line_cols ,- c("depmap_id", "lua", "pool_id")
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+dose_col <- "pert_dose"
+l2fc_column <- "l2fc"
+type_col <- "pert_type"
+cap_for_viability <- 1.5
 
+# Create treatment_columns by filtering out elements containing "dose" ----
+treatment_cols <- union(
+  sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)],
+  sig_cols[sig_cols == "day"]
+)
 
 # FIT DRC curves ----
+dose_response= create_drc_table(LFC= l2fc,
+                                cell_line_cols= cell_line_cols,
+                                treatment_cols= treatment_cols,
+                                dose_col= dose_col,
+                                l2fc_column= l2fc_column,
+                                type_col= type_col,
+                                cap_for_viability= cap_for_viability)
 
 
 ```
@@ -374,10 +393,10 @@ source("~/sushi/scripts/utils/kitchen_utensils.R")
 source("~/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-#h5 file
+#h5 file from taiga
 
 # Calculate biomarkers ----
-
+#h5 file from taiga
 
 ```
 

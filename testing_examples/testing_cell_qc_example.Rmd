@@ -1,0 +1,42 @@
+---
+title: "testing_cell_qc_example"
+author: "Ursula Widocki"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Example
+```{r example qc cell line, echo = T, eval = F}
+# Load into environment ----
+require(magrittr)
+require(tidyverse)
+source("~/sushi/scripts/src/kitchen_utensils.R")
+source("~/sushi/scripts/src/qc_table.R")
+
+# Set up inputs ----
+filtered_counts <- data.table::fread("~/Desktop/data/vignette_test_data/filtered_counts.csv")
+norm_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")
+CB_meta <- data.table::fread("~/Desktop/data/vignette_test_data/data/CB_meta.csv")
+negcon_type <- "ctl_vehicle"
+poscon_type <- "trt_poscon"
+cell_line_cols <- c("depmap_id", "lua", "pool_id")
+id_cols <- c("pcr_plate", "pcr_well")
+count_threshold <- 40
+pseudocount <- 20
+
+nc_raw_counts_threshold <- 40
+nc_variability_threshold <- 1
+pc_variability_threshold <- 0.25
+error_rate_threshold <- 0.05
+
+# Compute cell line QC ----
+
+
+```
+
+
+
