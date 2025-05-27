@@ -20,19 +20,19 @@ library(magrittr)
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/normalize.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/normalilze/normalize_functions.R")
 
 # Set up inputs ----
-filtered_counts = subsetofnormalizedrawcountsdownload
-CB_meta = subsetofnormalizedrawcountsdownload
-input_pseudocount = 20
-input_id_cols = c("pcr_plate", "pcr_well")
+filtered_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/filtered_counts.csv")
+CB_meta <- data.table::fread("~/Desktop/data/vignette_test_data/data/CB_meta.csv")
+pseudocount <- 20
+input_id_cols <- c("pcr_plate", "pcr_well")
 
 # Normalize your counts ----
 normalized_counts = normalize(X = filtered_counts, 
                               id_cols = input_id_cols,
                               CB_meta = CB_meta, 
-                              pseudocount = input_pseudocount)
+                              pseudocount = pseudocount)
 
 ```

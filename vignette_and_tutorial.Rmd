@@ -118,19 +118,20 @@ You may recreate the necessary input from your level 3 data or normalized and ra
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/normalize.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/normalize/normalize_functions.R")
 
 # Set up inputs ----
-filtered_counts = subsetofnormalizedrawcountsdownload
-CB_meta = subsetofnormalizedrawcountsdownload
-input_pseudocount = 20
-input_id_cols = c("pcr_plate", "pcr_well")
+filtered_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/filtered_counts.csv")
+CB_meta <- data.table::fread("~/Desktop/data/vignette_test_data/data/CB_meta.csv")
+pseudocount <- 20
+input_id_cols <- c("pcr_plate", "pcr_well")
 
 # Normalize your counts ----
-normalized_counts = normalize(X= filtered_counts, id_cols= input_id_cols,
-                              CB_meta= CB_meta, pseudocount= input_pseudocount)
-
+normalized_counts = normalize(X = filtered_counts, 
+                              id_cols = input_id_cols,
+                              CB_meta = CB_meta, 
+                              pseudocount = pseudocount)
 
 ```
 
@@ -169,8 +170,8 @@ where $FPR$ is the false positive rate and $FNR$ is the false negative rate. Spe
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/qc_table.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/qc_tables/qc_table_functions.R")
 
 # Set up inputs ----
 
@@ -196,8 +197,8 @@ The following three metrics define PCR well failure on a particular PCR plate. P
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/qc_table.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/qc_table/qc_table_functions.R")
 
 # Set up inputs ----
 
@@ -219,7 +220,7 @@ A PRISM screen incorporates multiple types of replicates to enhance the reliabil
 
 Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc.R`) first takes the average across technical replicates. Then, the mean is taken since there are typically fewer technical replicates than biological replicates and there is less variability between technical replicates. Finally, log2 fold change is computed by comparing these means to those of the negative control samples, using the formula:
 $$
-L2FC = log2( \frac{x_t}{x_{nc}}) 
+L2FC = log_2( \frac{x_t}{x_{nc}}) 
 $$
 
 where $x_t$ is mean normalized counts across technical reps and
@@ -230,8 +231,8 @@ where $x_t$ is mean normalized counts across technical reps and
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/compute_l2fc.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/compute_l2fc/compute_l2fc_functions.R")
 
 # Set up inputs ----
 normalized_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")
@@ -284,8 +285,8 @@ From L2FCs calculated in the previous module, **collapse_replicates** (`sushi/sc
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/Desktop/sushi/scripts/src/kitchen_utensils.R")
-source("~/Desktop/sushi/scripts/src/collapse_bio_reps.R")
+source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
+source("~/Desktop/sushi/scripts/collapse_replicates/collapse_replicates_functions.R")
 
 # Set up inputs ----
 l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
@@ -345,8 +346,8 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/drc_table.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/drc/dose_response_functions.R")
 
 # Set up inputs ----
 
@@ -369,11 +370,11 @@ For univariate biomarker analysis with continuous features (e.g. CRISPR dependen
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/biomarker.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-
+#h5 file
 
 # Calculate biomarkers ----
 
@@ -397,11 +398,11 @@ For each feature of each model, feature importance is computed after normalizati
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
-source("~/sushi/scripts/src/kitchen_utensils.R")
-source("~/sushi/scripts/src/biomarker.R")
+source("~/sushi/scripts/utils/kitchen_utensils.R")
+source("~/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-
+#h5 file
 
 # Calculate biomarkers ----
 
