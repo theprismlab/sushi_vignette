@@ -9,62 +9,52 @@ output:
     number_sections: TRUE
     toc_float: TRUE
     tabset: TRUE
-    highlight: tango
-    df_print: paged
-    css: styles.css
 ---
-
-```{r toggle setup, echo=FALSE, results='asis'}
-cat('
 <style>
-  .toggle-button {
-    margin-left: 10px;
-    font-size: 0.8em;
-    cursor: pointer;
-    background: #e7e7e7;
-    border: none;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
+.toggle-button {
+  float: right;
+  font-size: 0.8em;
+  margin-left: 10px;
+  background: none;
+  border: none;
+  color: #007BFF;
+  cursor: pointer;
+}
+
+.toggle-button:hover {
+  text-decoration: underline;
+}
 </style>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const headers = document.querySelectorAll("h2, h3");  // Change if needed
-    headers.forEach(function(header) {
-      // Create button
-      const button = document.createElement("button");
-      button.innerText = "Hide";
-      button.className = "toggle-button";
+document.addEventListener("DOMContentLoaded", function () {
+  const headers = document.querySelectorAll("h1:not(.title)");
 
-      // Wrap all content until the next same-or-higher-level heading
-      let contentWrapper = document.createElement("div");
-      let next = header.nextElementSibling;
-      while (next && !/^H[1-3]$/.test(next.tagName)) {
-        let temp = next.nextElementSibling;
-        contentWrapper.appendChild(next);
-        next = temp;
-      }
-      header.parentNode.insertBefore(contentWrapper, next);
+  headers.forEach(header => {
+    const btn = document.createElement("button");
+    btn.textContent = "[–]";
+    btn.className = "toggle-button";
+    header.appendChild(btn);
 
-      // Insert button
-      header.appendChild(button);
+    const content = [];
+    let el = header.nextElementSibling;
 
-      // Toggle functionality
-      button.addEventListener("click", function() {
-        if (contentWrapper.style.display === "none") {
-          contentWrapper.style.display = "";
-          button.innerText = "Hide";
-        } else {
-          contentWrapper.style.display = "none";
-          button.innerText = "Show";
-        }
+    while (el && !(el.tagName === "H1" && !el.classList.contains("title"))) {
+      content.push(el);
+      el = el.nextElementSibling;
+    }
+
+    btn.addEventListener("click", () => {
+      const isVisible = content[0] && content[0].style.display !== "none";
+      content.forEach(e => {
+        if (e) e.style.display = isVisible ? "none" : "";
       });
+      btn.textContent = isVisible ? "[+]" : "[–]";
     });
   });
+});
 </script>
-')
-```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -133,6 +123,8 @@ normalized_counts = normalize(X = filtered_counts,
                               CB_meta = CB_meta, 
                               pseudocount = pseudocount)
 
+head(normalized_counts)
+
 ```
 
 IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well
@@ -179,6 +171,7 @@ source("~/sushi/scripts/qc_tables/qc_table_functions.R")
 # Compute cell line QC ----
 
 
+Head()
 ```
 
 ### Measures of well quality {.tabset}
@@ -206,6 +199,7 @@ source("~/sushi/scripts/qc_table/qc_table_functions.R")
 # Compute well QC ----
 
 
+head()
 ```
 
 ## Calculating log2 fold changes {.tabset}
@@ -220,10 +214,10 @@ A PRISM screen incorporates multiple types of replicates to enhance the reliabil
 
 Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc.R`) first takes the average across technical replicates. Then, the mean is taken since there are typically fewer technical replicates than biological replicates and there is less variability between technical replicates. Finally, log2 fold change is computed by comparing these means to those of the negative control samples, using the formula:
 $$
-L2FC = log_2( \frac{x_t}{x_{nc}}) 
+L2FC_{i,j} = log_2( \frac{x_{t_{i,j}}}{x_{nc_{i,j}}}) 
 $$
 
-where $x_t$ is mean normalized counts across technical reps and
+where $i,j$ is cell line $i$ in a treatment condition $j$, $x_t$ is mean normalized counts across technical reps, and
     $x_{nc}$ is the mean normalized counts of negative control taken across technical replicates, and then median across their biological replicates
 
 ### Example
@@ -243,35 +237,32 @@ count_col_name <- "log2_normalized_n"
 count_threshold <- 40
 cell_line_cols <- c("lua", "depmap_id", "pool_id")
 
-## For filtering failed cell lines
-filter_failed_lines <- TRUE
-qc_path <- data.table::fread("~/Desktop/data/vignette_test_data/data/qc_table.csv")
-out <- "~/Desktop/data/vignette_test_data/data/"
-
 # Calculated log2 fold changes
-l2fc= compute_l2fc(normalized_counts = normalized_counts, 
+l2fc = compute_l2fc(normalized_counts = normalized_counts, 
                    control_type = control_type, 
                    sig_cols = sig_cols, 
                    ctrl_cols = ctrl_cols, 
                    count_col_name = count_col_name, 
                    count_threshold = count_threshold,
-                   cell_line_cols = cell_line_cols)
+                   cell_line_col = cell_line_cols)
 
-# If filter_failed_lines is TRUE, filter out failed cell lines from the output file
-if (args$filter_failed_lines) {
-  # Write the unfiltered l2fc file
-  print("Writing out unfiltered l2fc file ...")
-  l2fc_unfiltered_outpath = paste(out, "l2fc_original.csv", sep= "/")
-  write.csv(l2fc, l2fc_unfiltered_outpath, row.names= FALSE, quote= FALSE)
+head(l2fc)
+```
+
+
+Optional filtering step for removing failed cell lines
+```{r l2fc opt filt, echo = T, eval = F}
+qc_path <- data.table::fread("~/Desktop/data/vignette_test_data/data/qc_table.csv")
   
-  # Read in QC file and filter lines that fail for an entire pert_plate
-  join_cols = c(cell_line_cols, "pert_plate")
-  qc_data = data.table::fread(qc_path, header= TRUE, sep= ',', data.table= FALSE)
-  failed_lines_pert_plate = qc_data %>% filter(qc_pass_pert_plate == FALSE) %>% select(all_of(join_cols))
+# remove cell lines that fail for an entire pert_plate
+join_cols = c(cell_line_cols, "pert_plate")
+qc_data = data.table::fread(qc_path, header= TRUE, sep= ',', data.table= FALSE)
+failed_lines_pert_plate = qc_data %>% filter(qc_pass_pert_plate == FALSE) %>% select(all_of(join_cols))
 
-  l2fc = l2fc %>% anti_join(failed_lines_pert_plate, by= join_cols)
-}
+l2fc = l2fc %>% anti_join(failed_lines_pert_plate, by= join_cols)
 
+
+head(l2fc)
 ```
 
 ## Collapsing log2 fold changes across replicates {.tabset}
@@ -297,6 +288,8 @@ cell_line_cols <- c("depmap_id", "lua", "pool_id")
 collapsed_l2fc = collapse_bio_reps(l2fc = l2fc, 
                                   sig_cols = sig_cols, 
                                   cell_line_cols = cell_line_cols)
+
+head(collapsed_l2fc)
 ```
 
 ## Spliting based on projects
@@ -373,15 +366,17 @@ dose_response= create_drc_table(LFC= l2fc,
                                 type_col= type_col,
                                 cap_for_viability= cap_for_viability)
 
-
+head(dose_response)
 ```
 
-If an error message occurs similar to
+If a warning message occurs similar to
 
-`Error in optim(startVec, opfct, hessian = TRUE, method = "L-BFGS-B", lower = lowerLimits,  : 
-  L-BFGS-B needs finite values of 'fn'`
+`Error in optim(startVec, opfct, hessian = TRUE, method = "L-BFGS-B", `
+`lower = lowerLimits,  : L-BFGS-B needs finite values of 'fn'`
   
-this is due to the the curve not being able to be fitted for some cell line due to factors like too few replicates or to big of a difference between replicate results.
+it is due to issues relating to the initialization of the optimization of the fit, but it does not mean that the fit failed. 
+
+*Add one DRC plot of one cell line*
 
 ## Identifying biomarkers
 
@@ -394,18 +389,65 @@ For univariate biomarker analysis with continuous features (e.g. CRISPR dependen
 #### Example
 ```{r example univariate biomarker, echo = T, eval = F}
 # Load into environment ----
+require(data.table)
 require(magrittr)
 require(tidyverse)
+require(rhdf5)
+require(WGCNA)
+require(rlang)
 source("~/sushi/scripts/utils/kitchen_utensils.R")
 source("~/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-#h5 file from taiga
+#depmap_file = h5 file from taiga
+collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv")
+cell_line_cols <- c("depmap_id","lua","pool_id")
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+
+# See all features 
+all_features <-  substr(setdiff(h5ls(depmap_file)$group, c("/",  "/Lineage_Table")),2,100)
+print(all_feature)
+
+select_features <- NULL # if NULL, selects all feature sets
+
+# cast the responses into a matrix
+collapsed_l2fc_column <- "median_l2fc"
+treatment_columns = c("pert_id", "x_project_id", "pert_name", "pert_plate", "pert_dose")
+
+input_matrix <- collapsed_l2fc %>%
+  dplyr::filter(is.finite(.data[[collapsed_l2fc_column]])) %>%
+  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  reshape2::acast(depmap_id ~ cn, value.var = collapsed_l2fc_column, fun.aggregate = aggregate_function) %>%
+  function(x){x}
 
 # Calculate biomarkers ----
-#h5 file from taiga
+collapsed_l2fc_column <- "median_l2fc"
+trt_cols_lfc = unique(c("day", sig_cols[grepl("pert", sig_cols)]))
+biomarkers <- univariate_biomarker_table(
+  Y = input_matrix,
+  file = depmap_file
+  features = select_features
+)
 
+head(biomarkers)
 ```
+
+Calculating univariate biomarkers with AUCs
+```{r example univariate biomarker with aucs, echo = T, eval = F}
+dr_column <- "log2_auc"
+trt_cols_auc = unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
+
+biomarkers <- univariate_biomarker_table(
+  Y = ,
+  file = depmap_file,
+    output_file_name = "log2_auc_univariate_biomarkers.csv",
+    treatment_columns = trt_cols_auc,
+    response_column = dr_column)
+
+head(biomarkers)
+```
+
+*add a volcano plot*
 
 ### Multivariate biomarker analysis {.tabset}
 
@@ -424,15 +466,47 @@ For each feature of each model, feature importance is computed after normalizati
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
+require(rhdf5)
+require(WGCNA)
 source("~/sushi/scripts/utils/kitchen_utensils.R")
 source("~/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-#h5 file
+#bio_file = h5 file from taiga
+collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv")
+in_path <- "~/Desktop/data/vignette_test_data/data/"
+out_path <- "~/Desktop/data/vignette_test_data/data/"
+cell_line_cols <- c("depmap_id","lua","pool_id")
+sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
 
 # Calculate biomarkers ----
+collapsed_l2fc_column <- "median_l2fc"
+trt_cols_lfc = unique(c("day", sig_cols[grepl("pert", sig_cols)]))
 
+biomarkers <- multivariate_biomarker_table(
 
+    output_file_name = "median_l2fc_multivariate_biomarkers.csv",
+    treatment_columns = trt_cols_lfc,
+    response_column = lfc_column,
+    file = depmap_file)
+
+head(biomarkers)
+```
+
+Calculating multivariate biomarkers with AUCs
+```{r example multivariate biomarker with aucs, echo = T, eval = F}
+dr_column <- "log2_auc"
+trt_cols_auc = unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
+
+biomarkers <- create_multivariate_biomarker_table(
+    in_path = drc_file,
+    out_path = out_path,
+    output_file_name = "log2_auc_multivariate_biomarkers.csv",
+    treatment_columns = trt_cols_auc,
+    response_column = dr_column,
+    depmap_file = bio_file)
+
+head(biomarkers)
 ```
 
 ## Frequently asked questions
@@ -440,10 +514,27 @@ source("~/sushi/scripts/biomarker/biomarker_functions.R")
 *Some FAQs should be added here*
 
 
-## R environment information
+# R environment information
 
-```{r}
-utils:::print.sessionInfo(sessionInfo()[c(-10)])
+```{r sessionInfo, echo = F, eval = T}
+#utils:::print.sessionInfo(sessionInfo()[c(-10)])
+
+si <- sessionInfo()
+
+# Combine attached and loaded-only packages
+all_pkgs <- c(si$otherPkgs, si$loadedOnly)
+
+# Extract package names and versions
+pkg_versions <- sapply(all_pkgs, function(pkg) pkg$Version)
+
+# Sort alphabetically by package name
+pkg_versions_sorted <- pkg_versions[order(names(pkg_versions))]
+
+# Print result
+cat("All packages used (attached + loaded via namespace):\n")
+for (pkg in names(pkg_versions_sorted)) {
+  cat(sprintf("  %s: %s\n", pkg, pkg_versions_sorted[pkg]))
+}
 ```
 
 
