@@ -1576,9 +1576,9 @@ folder.</p>
 page to come&gt;</em> using the encorafenib compound.</p>
 <p>Formats of input files can be found <em>this will be an excel
 download, currently a GSheet</em></p>
-<div id="from-sequencing-output-to-pre-normalized-counts" class="section level3" number="2.0.1">
-<h3><span class="header-section-number">2.0.1</span> From sequencing
-output to pre-normalized counts</h3>
+<div id="from-sequencing-output-to-pre-normalized-counts" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> From sequencing
+output to pre-normalized counts</h2>
 <p>This section describes steps taken to prepare PRISM sequencing data
 for normalization. <strong>These steps are for internal processing only,
 and documentation is provided for completeness.</strong></p>
@@ -1642,8 +1642,8 @@ and using the following commands in your terminal window:</p>
 <pre class="r"><code># Load into environment ----
 require(magrittr)
 require(tidyverse)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/normalize/normalize_functions.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/normalize/normalize_functions.R&quot;)
 
 # Set up inputs ----
 filtered_counts &lt;- data.table::fread(&quot;~/Desktop/data/vignette_test_data/data/filtered_counts.csv&quot;)
@@ -1659,6 +1659,17 @@ normalized_counts = normalize(X = filtered_counts,
 
 head(normalized_counts)</code></pre>
 <p>IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well</p>
+<pre class="r"><code>normalized_counts %&gt;% dplyr::filter(!is.na(cb_name)) %&gt;%
+  tidyr::unite(col= &#39;profile_id&#39;, all_of(id_cols), sep= &#39;:&#39;, na.rm= FALSE, remove=FALSE) %&gt;%
+  dplyr::group_by(profile_id) %&gt;%
+  filter(pcr_plate == 1, pcr_well == &quot;A02&quot;) %&gt;% # filters for one well
+  ggplot() + 
+  aes(x = log2(n + pseudocount), y = cb_log2_dose) +
+  geom_point() +
+  geom_abline(aes(slope = 1, intercept = cb_intercept) , color = &#39;blue&#39;) +
+  geom_text(aes(x = min(log2(n + pseudocount)), y = desc(sort(unique(cb_log2_dose)))[1], hjust = &#39;inward&#39;, vjust = &#39;inward&#39;, size = 2.5) +
+  labs(x = &#39;log2(n)&#39;, y = &#39;log2(dose)&#39;) + 
+  theme_bw() + theme(text = element_text(size = 10))</code></pre>
 </div>
 </div>
 <div id="filtering-based-on-quality-control" class="section level2 tabset" number="3.2">
@@ -1724,8 +1735,10 @@ the corresponding error rate.</p>
 <pre class="r"><code># Load into environment ----
 require(magrittr)
 require(tidyverse)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/qc_tables/qc_table_functions.R&quot;)
+require(data.table)
+require(PRROC)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/qc_tables/qc_table_functions.R&quot;)
 
 # Set up inputs ----
 
@@ -1765,8 +1778,10 @@ control barcode count and dose using Spearman correlation
 <pre class="r"><code># Load into environment ----
 require(magrittr)
 require(tidyverse)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/qc_table/qc_table_functions.R&quot;)
+require(data.table)
+require(PRROC)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/qc_table/qc_table_functions.R&quot;)
 
 # Set up inputs ----
 
@@ -1816,8 +1831,8 @@ replicates, and then median across their biological replicates</p>
 <pre class="r"><code># Load into environment ----
 require(magrittr)
 require(tidyverse)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/compute_l2fc/compute_l2fc_functions.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/compute_l2fc/compute_l2fc_functions.R&quot;)
 
 # Set up inputs ----
 normalized_counts &lt;- data.table::fread(&quot;~/Desktop/data/vignette_test_data/data/normalized_counts.csv&quot;)
@@ -1960,8 +1975,11 @@ independent of the fit.</p>
 <div id="example-5" class="section level3" number="4.1.3">
 <h3><span class="header-section-number">4.1.3</span> Example</h3>
 <pre class="r"><code># Load into environment ----
+require(dr4pl)
+require(drc)
 require(magrittr)
 require(tidyverse)
+require(rlang)
 source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
 source(&quot;~/Desktop/sushi/scripts/drc/dose_response_functions.R&quot;)
 
@@ -1981,7 +1999,7 @@ treatment_cols &lt;- union(
 )
 
 # FIT DRC curves ----
-dose_response= create_drc_table(LFC= l2fc,
+dose_response &lt;- create_drc_table(LFC= l2fc,
                                 cell_line_cols= cell_line_cols,
                                 treatment_cols= treatment_cols,
                                 dose_col= dose_col,
@@ -1995,7 +2013,29 @@ head(dose_response)</code></pre>
 <code>lower = lowerLimits,  : L-BFGS-B needs finite values of &#39;fn&#39;</code></p>
 <p>it is due to issues relating to the initialization of the
 optimization of the fit, but it does not mean that the fit failed.</p>
-<p><em>Add one DRC plot of one cell line</em></p>
+<p>Here is an example of a dose response curve for cell line
+ACH-000005:</p>
+<pre class="r"><code>drc_cell_line_example &lt;- dose_response %&gt;% dplyr::filter(depmap_id == &quot;ACH-000020&quot;)
+
+doses &lt;- drc_cell_line_example$minimum_dose * 3^(0:5)
+lower_lim &lt;- drc_cell_line_example$lower_limit
+upper_lim &lt;- drc_cell_line_example$upper_limit
+ec50 &lt;- drc_cell_line_example$inflection
+slope &lt;- drc_cell_line_example$slope
+
+response &lt;- upper_lim + ((lower_lim - upper_lim) / (1 + (dose/ec50)^slope))
+
+df &lt;- data.frame(doses, response)
+
+drc_plot &lt;- ggplot(df, aes(x = doses, y = response)) +
+  geom_line(color = &quot;blue&quot;) +
+  geom_point() +
+  scale_x_log10() +
+  geom_vline(xintercept = ec50, linetype = &quot;dashed&quot;, color = &quot;red&quot;) +
+  labs(title = &quot;3-Fold Dose-Response Curve&quot;, x = &quot;Doses (log10 scale)&quot;, y = &quot;Response&quot;) +
+  theme_minimal()
+
+print(drc_plot)</code></pre>
 </div>
 </div>
 <div id="identifying-biomarkers" class="section level2" number="4.2">
@@ -2024,8 +2064,9 @@ require(tidyverse)
 require(rhdf5)
 require(WGCNA)
 require(rlang)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/biomarker/biomarker_functions.R&quot;)
+require(matrixStats)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/biomarker/biomarker_functions.R&quot;)
 
 # Set up inputs ----
 #depmap_file = h5 file from taiga
@@ -2072,6 +2113,15 @@ biomarkers &lt;- univariate_biomarker_table(
 
 head(biomarkers)</code></pre>
 <p><em>add a volcano plot</em></p>
+<pre class="r"><code>biomarkers %&gt;%
+  filter(feature.set == &quot;EXP&quot;) %&gt;%
+  ggplot() +
+  aes(x = rho, y = q_val_neg_log) +
+  geom_point(size = 1, color = &quot;cornflowerblue&quot;, alpha = 0.4) +
+  facet_grid(pert_dose~.,) +  
+  theme_minimal() +
+  theme(legend.position = &quot;bottom&quot;) +
+  labs(title = &quot;Biomarkers using Gene Expression&quot;)</code></pre>
 </div>
 </div>
 <div id="multivariate-biomarker-analysis" class="section level3 tabset" number="4.2.2">
@@ -2104,8 +2154,8 @@ require(magrittr)
 require(tidyverse)
 require(rhdf5)
 require(WGCNA)
-source(&quot;~/sushi/scripts/utils/kitchen_utensils.R&quot;)
-source(&quot;~/sushi/scripts/biomarker/biomarker_functions.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/utils/kitchen_utensils.R&quot;)
+source(&quot;~/Desktop/sushi/scripts/biomarker/biomarker_functions.R&quot;)
 
 # Set up inputs ----
 #bio_file = h5 file from taiga

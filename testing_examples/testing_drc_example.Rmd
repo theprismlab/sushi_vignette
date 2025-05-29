@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
+library(drc)
 source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
 source("~/Desktop/sushi/scripts/drc/dose_response_functions.R")
 
@@ -42,6 +43,30 @@ dose_response= create_drc_table(LFC= l2fc,
                                 type_col= type_col,
                                 cap_for_viability= cap_for_viability)
 
+```
 
+# Plot 
+```{r}
+drc_cell_line_example <- dose_response %>% filter(depmap_id == "ACH-000020")
+
+dose <- drc_cell_line_example$minimum_dose * 3^(0:5)
+lower_lim <- drc_cell_line_example$lower_limit
+upper_lim <- drc_cell_line_example$upper_limit
+ec50 <- drc_cell_line_example$inflection
+slope <- drc_cell_line_example$slope
+
+response <- upper_lim + ((lower_lim - upper_lim) / (1 + (dose/ec50)^slope))
+
+df <- data.frame(dose, response)
+
+drc_plot <- ggplot(df, aes(x = dose, y = response)) +
+  geom_line(color = "blue") +
+  geom_point() +
+  scale_x_log10() +
+  geom_vline(xintercept = ec50, linetype = "dashed", color = "red") +
+  labs(title = "3-Fold Dose-Response Curve", x = "Dose (log10 scale)", y = "Response") +
+  theme_minimal()
+
+print(drc_plot)
 ```
 
