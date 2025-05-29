@@ -191,7 +191,7 @@ Head()
 #### Description
 The following three metrics define PCR well failure on a particular PCR plate. Passing wells have their data provided in normalized counts data.
 
-* We filter out wells that do not have sufficient amplification, determined by a threshold on the median raw count of the control barcodes in the well. (We do not have a threshold on reads from cell lines since a strong treatment may kill all the cells.)
+* We filter out wells that do not have sufficient amplification, determined by a threshold on the median raw count of the control barcodes in the well (`well_reads_threshold`). (We do not have a threshold on reads from cell lines since a strong treatment may kill all the cells.)
 
 * We filter out wells that may have been contaminated or had PCR issues, determined by a threshold on the fraction of reads in a well that are associated with cell lines and control barcodes expected to be present in the well (`contamination_threshold`)
 

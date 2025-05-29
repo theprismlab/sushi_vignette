@@ -1760,8 +1760,9 @@ data.</p>
 <ul>
 <li><p>We filter out wells that do not have sufficient amplification,
 determined by a threshold on the median raw count of the control
-barcodes in the well. (We do not have a threshold on reads from cell
-lines since a strong treatment may kill all the cells.)</p></li>
+barcodes in the well (<code>well_reads_threshold</code>). (We do not
+have a threshold on reads from cell lines since a strong treatment may
+kill all the cells.)</p></li>
 <li><p>We filter out wells that may have been contaminated or had PCR
 issues, determined by a threshold on the fraction of reads in a well
 that are associated with cell lines and control barcodes expected to be
