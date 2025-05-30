@@ -68,13 +68,13 @@ knitr::opts_chunk$set(echo = FALSE)
 Sushi output files, their columns and definitions can be found on this spreadsheet. Columns sushi repeatedly uses to match cell line information are `depmap_id`, `lua`, `pool_id`, and `cell_set`.
 
 # Getting started with Sushi
-**Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function. The Bash and setup R scripts are located in the `sushi/scripts/` directory, while the main function scripts reside in `sushi/scripts/src/`. Common utility functions used across modules are defined in `sushi/scripts/src/kitchen_utensils.R`.
+**Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function. The all three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder.
 
 The sushi pipeline github repository can be found at https://github.com/cmap/sushi/tree/main
 
 This vignette is located in the `sushi/vignette/` folder.
 
-Sample data used in this vignette is found on *<MTS 28 portal page to come>* using the encorafenib compound.
+This vignette uses encorafenib data found on the PRISM portal page of the *MTS_SEQ004_A_NEW_PIPELINE* *(this will be updated once the actual MTS028 screen is on the portal)* screen.
 
 Formats of input files can be found *this will be an excel download, currently a GSheet*
 
