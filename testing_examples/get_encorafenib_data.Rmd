@@ -25,15 +25,21 @@ collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_S
 
 # Filter for encorafenib
 ```{r}
-norm_counts %<>% filter(pert_name == "ENCORAFENIB" | pert_type == "ctl_vehicle")
+filter_counts <- norm_counts %>% select(-cb_intercept, -log2_normalized_n)
+norm_counts %<>% filter(pert_name == "ENCORAFENIB" | pert_type %in% c("ctl_vehicle", "trt_poscon"))
 l2fc %<>% filter(pert_name == "ENCORAFENIB")
 collapsed_l2fc %<>% filter(pert_name == "ENCORAFENIB")
+
+CB_meta <- norm_counts %>% select(cb_name, cb_log2_dose, cb_ladder)
 ```
 
 # Write data into new folders
 ```{r}
+write.csv(filter_counts, "~/Desktop/data/vignette_test_data/data/filtered_counts.csv", row.names = F)
+write.csv(norm_counts, "~/Desktop/data/vignette_test_data/data/normalized_counts.csv", row.names = F)
 write.csv(l2fc, "~/Desktop/data/vignette_test_data/data/l2fc.csv", row.names = F)
 write.csv(collapsed_l2fc, "~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv", row.names = F)
+write.csv(CB_meta, "~/Desktop/data/vignette_test_data/data/CB_meta.csv", row.names = F)
 ```
 
 

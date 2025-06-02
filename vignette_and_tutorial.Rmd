@@ -104,7 +104,7 @@ You may recreate the necessary input from your level 3 data or normalized and ra
 
 
 ### Example
-```{r example normalization, echo = T, eval = F}
+```{r example normalization, echo = T, eval = T}
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
@@ -128,17 +128,24 @@ head(normalized_counts)
 ```
 
 IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well
-```{r ex cb ladder, echo = T, eval = F}
+```{r ex cb ladder, echo = T, eval = T}
+# Load into environment ----
+library(ggrepel)
+
+# Plot control barcode ladder ----
 normalized_counts %>% dplyr::filter(!is.na(cb_name)) %>%
-  tidyr::unite(col= 'profile_id', all_of(id_cols), sep= ':', na.rm= FALSE, remove=FALSE) %>%
-  dplyr::group_by(profile_id) %>%
-  filter(pcr_plate == 1, pcr_well == "A02") %>% # filters for one well
+  mutate(pcr_profile = paste0(pcr_plate,";", pcr_well)) %>%
+  dplyr::group_by(pcr_profile) %>%
+  filter(pcr_plate == "SEQ004_S1.X1.PR2025A") %>%
+  filter(pcr_well == "A01") %>%
+  distinct() %>%
   ggplot() + 
-  aes(x = log2(n + pseudocount), y = cb_log2_dose) +
+  aes(x = log2(n + pseudocount), y = cb_log2_dose, label = cb_name) +
   geom_point() +
   geom_abline(aes(slope = 1, intercept = cb_intercept) , color = 'blue') +
-  geom_text(aes(x = min(log2(n + pseudocount)), y = desc(sort(unique(cb_log2_dose)))[1], hjust = 'inward', vjust = 'inward', size = 2.5) +
+  geom_text_repel(padding = 0.2, nudge_y = 0.2) +
   labs(x = 'log2(n)', y = 'log2(dose)') + 
+  facet_wrap(pcr_profile~.) +
   theme_bw() + theme(text = element_text(size = 10))
 ```
 
@@ -286,7 +293,7 @@ From L2FCs calculated in the previous module, **collapse_replicates** (`sushi/sc
 
 
 ### Example
-```{r example collapsed l2fc, echo = T, eval = F}
+```{r example collapsed l2fc, echo = T, eval = T}
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
@@ -349,7 +356,7 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 
 ### Example
 
-```{r example drc, echo = T, eval = F}
+```{r example drc, echo = T, eval = T}
 # Load into environment ----
 require(dr4pl)
 require(drc)
@@ -394,7 +401,7 @@ If a warning message occurs similar to
 it is due to issues relating to the initialization of the optimization of the fit, but it does not mean that the fit failed. 
 
 Here is an example of a dose response curve for cell line ACH-000005:
-```{r drc plot, echo = T, eval = F}
+```{r drc plot, echo = T, eval = T}
 
 drc_cell_line_example <- dose_response %>% dplyr::filter(depmap_id == "ACH-000020")
 
@@ -404,7 +411,7 @@ upper_lim <- drc_cell_line_example$upper_limit
 ec50 <- drc_cell_line_example$inflection
 slope <- drc_cell_line_example$slope
 
-response <- upper_lim + ((lower_lim - upper_lim) / (1 + (dose/ec50)^slope))
+response <- upper_lim + ((lower_lim - upper_lim) / (1 + (doses/ec50)^slope))
 
 df <- data.frame(doses, response)
 
