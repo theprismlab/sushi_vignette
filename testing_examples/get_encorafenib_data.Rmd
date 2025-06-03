@@ -30,7 +30,8 @@ norm_counts %<>% filter(pert_name == "ENCORAFENIB" | pert_type %in% c("ctl_vehic
 l2fc %<>% filter(pert_name == "ENCORAFENIB")
 collapsed_l2fc %<>% filter(pert_name == "ENCORAFENIB")
 
-CB_meta <- norm_counts %>% select(cb_name, cb_log2_dose, cb_ladder)
+CB_meta <- norm_counts %>% filter(!is.na(cb_name)) %>% 
+  select(cb_name, cb_log2_dose, cb_ladder) %>% distinct()
 ```
 
 # Write data into new folders

@@ -104,6 +104,9 @@ You may recreate the necessary input from your level 3 data or normalized and ra
 
 
 ### Example
+
+Here an example of how to test run module on your own data from the PRISM portal. Although `filtered_counts.csv` and `CB_meta.csv` are not provided, they can be made from the normalized data download and the data column definition spreadsheet as a reference. The `pseudocount` is a count we add to raw counts when taking the log2 transform. `input_id_cols` is a vector of column identifying unique samples.
+
 ```{r example normalization, echo = T, eval = T}
 # Load into environment ----
 require(magrittr)
@@ -133,17 +136,18 @@ IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well
 library(ggrepel)
 
 # Plot control barcode ladder ----
-normalized_counts %>% dplyr::filter(!is.na(cb_name)) %>%
+normalized_counts %>% 
+  dplyr::filter(!is.na(cb_name) & !is.na(cb_log2_dose)) %>%
   mutate(pcr_profile = paste0(pcr_plate,";", pcr_well)) %>%
   dplyr::group_by(pcr_profile) %>%
   filter(pcr_plate == "SEQ004_S1.X1.PR2025A") %>%
   filter(pcr_well == "A01") %>%
   distinct() %>%
   ggplot() + 
-  aes(x = log2(n + pseudocount), y = cb_log2_dose, label = cb_name) +
+  aes(x = log2(n + pseudocount), y = cb_log2_dose, label = cb_name, color = as.factor(cb_log2_dose)) +
   geom_point() +
   geom_abline(aes(slope = 1, intercept = cb_intercept) , color = 'blue') +
-  geom_text_repel(padding = 0.2, nudge_y = 0.2) +
+  geom_text_repel(nudge_y = 0.2) +
   labs(x = 'log2(n)', y = 'log2(dose)') + 
   facet_wrap(pcr_profile~.) +
   theme_bw() + theme(text = element_text(size = 10))
@@ -155,9 +159,8 @@ normalized_counts %>% dplyr::filter(!is.na(cb_name)) %>%
 ### General Description
 At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/src/qc_tables.R`).
 
-### Measures of cell line quality {.tabset}
+### Measures of cell line quality
 
-#### Description
 The following four metrics define cell line failure on a particular PCR plate. The cell line may pass on other PCR plates containing treatment replicates. If only one replicate of the cell line passes across all PCR plates containing the cell line, then the cell is deemed to have failed at the pert plate (set of replicates that may be across PCR plate) level. Log2-viability data from passing cell lines are provided in downloads files. 
 
 * The cell line is sufficiently abundant in the negative control condition (`nc_raw_counts_threshold`). In particular, a cell line needs to have a median raw count > 40 across negative control wells on the PCR plate
@@ -174,28 +177,8 @@ $$
 
 where $FPR$ is the false positive rate and $FNR$ is the false negative rate. Specifically, for each cell line in a replicate plate, we identify the threshold log2-normalized counts value that minimizes the sum of errors, defined as the fraction of positive control log2-normalized counts replicates exceeding the threshold and the fraction of negative control log2-normalized counts replicates falling below it, and report the corresponding error rate.
 
-#### Example
-```{r example qc cell line, echo = T, eval = F}
-# Load into environment ----
-require(magrittr)
-require(tidyverse)
-require(data.table)
-require(PRROC)
-source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
-source("~/Desktop/sushi/scripts/qc_tables/qc_table_functions.R")
-
-# Set up inputs ----
-
-
-# Compute cell line QC ----
-
-
-Head()
-```
-
 ### Measures of well quality {.tabset}
 
-#### Description
 The following three metrics define PCR well failure on a particular PCR plate. Passing wells have their data provided in normalized counts data.
 
 * We filter out wells that do not have sufficient amplification, determined by a threshold on the median raw count of the control barcodes in the well (`well_reads_threshold`). (We do not have a threshold on reads from cell lines since a strong treatment may kill all the cells.)
@@ -203,25 +186,6 @@ The following three metrics define PCR well failure on a particular PCR plate. P
 * We filter out wells that may have been contaminated or had PCR issues, determined by a threshold on the fraction of reads in a well that are associated with cell lines and control barcodes expected to be present in the well (`contamination_threshold`)
 
 * We filter out wells where there may have been control barcode contamination, estimated by the linearity of the relationship between control barcode count and dose using Spearman correlation (`cb_spearman_threshold`) and Mean Absolute Error (`cb_mae_threshold`) on a logarithmic scale.
-
-#### Example
-```{r example qc well, echo = T, eval = F}
-# Load into environment ----
-require(magrittr)
-require(tidyverse)
-require(data.table)
-require(PRROC)
-source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
-source("~/Desktop/sushi/scripts/qc_table/qc_table_functions.R")
-
-# Set up inputs ----
-
-
-# Compute well QC ----
-
-
-head()
-```
 
 ## Calculating log2 fold changes {.tabset}
 
@@ -382,13 +346,13 @@ treatment_cols <- union(
 )
 
 # FIT DRC curves ----
-dose_response <- create_drc_table(LFC= l2fc,
-                                cell_line_cols= cell_line_cols,
-                                treatment_cols= treatment_cols,
-                                dose_col= dose_col,
-                                l2fc_column= l2fc_column,
-                                type_col= type_col,
-                                cap_for_viability= cap_for_viability)
+dose_response <- create_drc_table(LFC = l2fc,
+                                cell_line_cols = cell_line_cols,
+                                treatment_cols = treatment_cols,
+                                dose_col = dose_col,
+                                l2fc_column = l2fc_column,
+                                type_col = type_col,
+                                cap_for_viability = cap_for_viability)
 
 head(dose_response)
 ```
