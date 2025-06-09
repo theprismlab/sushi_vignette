@@ -331,6 +331,7 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 
 Here is an example of how to run the dose_response module on your own data.`dose_cols` is a list of columns containing perturbagen doses, which is used to check that there is only one column with doses. `type_col` is a string designating which column denotes the type of treatment that each sample is, and `cap_of_viability` is the maximum value given to a cell line's viability.
 
+For the sake of the example, two cell lines were chosen: both with skin lineage, but one with a BRAF mutation and the other without.
 ```{r example drc, echo = T, eval = T}
 # Load into environment ----Add commentMore actions
 require(dr4pl)
@@ -344,7 +345,7 @@ source("~/Desktop/sushi/scripts/drc/dose_response_functions.R")
 # Set up inputs ----
 l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
 cell_line_cols <- c("depmap_id", "lua", "pool_id")
-sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+sig_cols <- c("cell_set", "pert_name", "pert_dose", "pert_dose_unit", "day")
 dose_col <- "pert_dose"
 l2fc_column <- "l2fc"
 type_col <- "pert_type"
@@ -357,13 +358,16 @@ treatment_cols <- union(
 )
 
 # FIT DRC curves ----
-dose_response <- create_drc_table(LFC= l2fc,
-                                cell_line_cols= cell_line_cols,
-                                treatment_cols= treatment_cols,
-                                dose_col= dose_col,
-                                l2fc_column= l2fc_column,
-                                type_col= type_col,
-                                cap_for_viability= cap_for_viability)
+
+select_cell_lines <- c("ACH-000219", "ACH-000810")
+
+dose_response <- create_drc_table(LFC = l2fc %>% filter(depmap_id %in% select_cell_lines),
+                                cell_line_cols = cell_line_cols,
+                                treatment_cols = treatment_cols,
+                                dose_col = dose_col,
+                                l2fc_col = l2fc_column,
+                                type_col = type_col,
+                                cap_for_viability = cap_for_viability)
 
 head(dose_response)
 ```
@@ -375,30 +379,58 @@ If a warning message occurs similar to
 
 it is due to issues relating to the initialization of the optimization of the fit, but it does not mean that the fit failed. 
 
-Here is an example of a dose response curve for cell line ACH-000005:
-```{r drc plot, echo = T, eval = F}
+Here is an example of a dose response curves
 ```{r drc plot, echo = T, eval = T}
 
-drc_cell_line_example <- dose_response %>% dplyr::filter(depmap_id == "ACH-000020")
+# Originial8 doses (for ticks and points)
+original_doses <- dose_response$minimum_dose * 3^(0:7)
 
-doses <- drc_cell_line_example$minimum_dose * 3^(0:5)
-lower_lim <- drc_cell_line_example$lower_limit
-upper_lim <- drc_cell_line_example$upper_limit
-ec50 <- drc_cell_line_example$inflection
-slope <- drc_cell_line_example$slope
+# Generate a smooth sequence of doses (for smooth curves)
+smooth_dose_seq <- function(min_dose) {
+  log_doses <- seq(log10(min_dose), log10(min_dose * 3^7), length.out = 100)
+  10^log_doses
+}
 
-response <- upper_lim + ((lower_lim - upper_lim) / (1 + (dose/ec50)^slope))
-response <- upper_lim + ((lower_lim - upper_lim) / (1 + (doses/ec50)^slope))
+# Create smooth dose-response curve per cell line
+smooth_df <- dose_response %>%
+  rowwise() %>%
+  do({
+    doses <- smooth_dose_seq(.$minimum_dose)
+    tibble(
+      depmap_id = .$depmap_id,
+      doses = doses,
+      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses / .$inflection)^.$slope)),
+      ec50 = .$inflection
+    )
+  }) %>%
+  ungroup()
 
-df <- data.frame(doses, response)
+# Calculate points only at original 8 doses for each cell line
+points_df <- dose_response %>%
+  rowwise() %>%
+  do({
+    doses <- .$minimum_dose * 3^(0:7)
+    tibble(
+      depmap_id = .$depmap_id,
+      doses = doses,
+      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses / .$inflection)^.$slope))
+    )
+  }) %>%
+  ungroup()
 
-drc_plot <- ggplot(df, aes(x = doses, y = response)) +
-  geom_line(color = "blue") +
-  geom_point() +
-  scale_x_log10() +
-  geom_vline(xintercept = ec50, linetype = "dashed", color = "red") +
-  labs(title = "3-Fold Dose-Response Curve", x = "Doses (log10 scale)", y = "Response") +
-  theme_minimal()
+# Plotting
+drc_plot <- ggplot() +
+  aes(x = doses, y = response, color = depmap_id) +
+  geom_line(data = smooth_df) +
+  geom_point(data = points_df) +
+  scale_x_log10(breaks = original_doses,
+                labels = scales::label_number(accuracy = 0.0001)) +
+  geom_vline(data = dose_response, aes(xintercept = inflection, color = depmap_id), linetype = "dashed") +
+  labs(title = "Dose-Response Curves for Cell Lines", 
+        x = "Doses (log10 scale)",
+        y = "Response") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90))
 
 print(drc_plot)
 ```
