@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 # Sushi pipeline overview
@@ -157,6 +157,9 @@ normalized_counts %>%
 ## Filtering based on quality control {.tabset}
 
 ### General Description
+
+**Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how metrics are calculated in the publically available code.**
+
 At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/src/qc_tables.R`).
 
 ### Measures of cell line quality
@@ -176,8 +179,6 @@ ER = \frac{FPR + FNR}{2}
 $$
 
 where $FPR$ is the false positive rate and $FNR$ is the false negative rate. Specifically, for each cell line in a replicate plate, we identify the threshold log2-normalized counts value that minimizes the sum of errors, defined as the fraction of positive control log2-normalized counts replicates exceeding the threshold and the fraction of negative control log2-normalized counts replicates falling below it, and report the corresponding error rate.
-
-Although collaborators are not able to run this module on their own data, they are able to see how metrics are calculated.
 
 ### Measures of well quality {.tabset}
 
@@ -331,7 +332,7 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 Here is an example of how to run the dose_response module on your own data.`dose_cols` is a list of columns containing perturbagen doses, which is used to check that there is only one column with doses. `type_col` is a string designating which column denotes the type of treatment that each sample is, and `cap_of_viability` is the maximum value given to a cell line's viability.
 
 ```{r example drc, echo = T, eval = T}
-# Load into environment ----
+# Load into environment ----Add commentMore actions
 require(dr4pl)
 require(drc)
 require(magrittr)
@@ -344,36 +345,38 @@ source("~/Desktop/sushi/scripts/drc/dose_response_functions.R")
 l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/l2fc.csv")
 cell_line_cols <- c("depmap_id", "lua", "pool_id")
 sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
-dose_cols <- sig_cols[grepl("_dose$", sig_cols)]
-l2fc_col <- "l2fc"
+dose_col <- "pert_dose"
+l2fc_column <- "l2fc"
 type_col <- "pert_type"
 cap_for_viability <- 1.5
 
-# Set DRCs as a loop
-drc_outputs = list()
+# Create treatment_columns by removing column names containing "dose" ----
+treatment_cols <- union(
+  sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)],
+  sig_cols[sig_cols == "day"]
+)
 
-for (idx in seq_along(dose_cols)) {
-  drc_outputs[[idx]] = create_drc_table(
-    LFC = l2fc[!is.na(get(dose_cols[idx])), ],
-    cell_line_cols = cell_line_cols,
-    treatment_cols = sig_cols[!grepl(dose_cols[idx], sig_cols)],
-    dose_col = dose_cols[idx],
-    l2fc_col = l2fc_col,
-    cap_for_viability = cap_for_viability
-  )
-}
+# FIT DRC curves ----
+dose_response <- create_drc_table(LFC= l2fc,
+                                cell_line_cols= cell_line_cols,
+                                treatment_cols= treatment_cols,
+                                dose_col= dose_col,
+                                l2fc_column= l2fc_column,
+                                type_col= type_col,
+                                cap_for_viability= cap_for_viability)
 
-dose_response = dplyr::bind_rows(drc_outputs)
+head(dose_response)
 ```
 
 If a warning message occurs similar to
 
 `Error in optim(startVec, opfct, hessian = TRUE, method = "L-BFGS-B", `
 `lower = lowerLimits,  : L-BFGS-B needs finite values of 'fn'`
-  
+
 it is due to issues relating to the initialization of the optimization of the fit, but it does not mean that the fit failed. 
 
 Here is an example of a dose response curve for cell line ACH-000005:
+```{r drc plot, echo = T, eval = F}
 ```{r drc plot, echo = T, eval = T}
 
 drc_cell_line_example <- dose_response %>% dplyr::filter(depmap_id == "ACH-000020")
@@ -384,6 +387,7 @@ upper_lim <- drc_cell_line_example$upper_limit
 ec50 <- drc_cell_line_example$inflection
 slope <- drc_cell_line_example$slope
 
+response <- upper_lim + ((lower_lim - upper_lim) / (1 + (dose/ec50)^slope))
 response <- upper_lim + ((lower_lim - upper_lim) / (1 + (doses/ec50)^slope))
 
 df <- data.frame(doses, response)
@@ -399,20 +403,19 @@ drc_plot <- ggplot(df, aes(x = doses, y = response)) +
 print(drc_plot)
 ```
 
-
 ## Identifying biomarkers
 
 ### Univariate biomarker analysis {.tabset}
 
 #### Description
 
-For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
+For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, gene expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
 
 #### Example
 
 Here is an example of how to run the univariate biomarker function on your data. `depmap_file_path` is a path to the h5 file of public release omics data from DepMap, which can be found for download on the PRISM portal.
 
-```{r example univariate biomarker, echo = T, eval = F}
+```{r example univariate biomarker, echo = T, eval = T}
 # Load into environment ----
 require(data.table)
 require(magrittr)
@@ -432,7 +435,7 @@ sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
 
 # See all features 
 all_features <-  substr(setdiff(rhdf5::h5ls(depmap_file_path)$group, "/"), 2, 100)
-#print(all_feature)
+print(all_features)
 select_features <- NULL # if NULL, selects all feature sets
 
 # Cast the responses into a matrix
@@ -459,7 +462,7 @@ biomarkers <- univariate_biomarker_table(
 head(biomarkers)
 ```
 
-Calculating univariate biomarkers with AUCs
+If you have AUCs in your data, here is an example of how to calculate univariate biomarkers using them.
 ```{r example univariate biomarker with aucs, echo = T, eval = F}
 dr_column <- "log2_auc"
 trt_cols_auc <- unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
@@ -474,18 +477,19 @@ biomarkers <- univariate_biomarker_table(
 head(biomarkers)
 ```
 
-*add a volcano plot*
-```{r univar volcano plot, echo = T, eval = F}
-
+Volcano plot example
+```{r univar volcano plot, echo = T, eval = T}
 biomarkers %>%
-  filter(feature.set == "EXP") %>%
+  filter(feature_set == "Expression") %>%
+  separate(y, into = treatment_columns, sep = "::") %>%
+  filter(pert_name == "ENCORAFENIB") %>%
   ggplot() +
-  aes(x = rho, y = q_val_neg_log) +
+  aes(x = correlation_coef, y = -log(q_val)) +
   geom_point(size = 1, color = "cornflowerblue", alpha = 0.4) +
   facet_grid(pert_dose~.,) +  
   theme_minimal() +
   theme(legend.position = "bottom") +
-  labs(title = "Biomarkers using Gene Expression")
+  labs(title = "Encorafenib Biomarkers using Gene Expression")
 
 ```
 
@@ -503,51 +507,71 @@ For each feature of each model, feature importance is computed after normalizati
 
 #### Example
 
-Here is an example of how to run the multivariate biomarker function on your data. Inputs are the same those for the univariate biomarker function.
+Here is an example of how to run the multivariate biomarker function on your data. Inputs are the similar to those for the univariate biomarker function. `W` is confounder matrix. It should not contain and NAs, rows are indexed by depmap_ids and aligned with Y. Its default is NULL. `k` is the number of cross validation fold, and its default is 10.
 
 ```{r example multivariate biomarker, echo = T, eval = F}
 # Load into environment ----
+require(data.table)
 require(magrittr)
 require(tidyverse)
 require(rhdf5)
 require(WGCNA)
+require(rlang)
+require(matrixStats)
 source("~/Desktop/sushi/scripts/utils/kitchen_utensils.R")
 source("~/Desktop/sushi/scripts/biomarker/biomarker_functions.R")
 
 # Set up inputs ----
-#bio_file = h5 file from taiga
+depmap_file_path <- "~/Desktop/data/vignette_test_data/data/prism_biomarker_public_0625.h5"
 collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv")
-in_path <- "~/Desktop/data/vignette_test_data/data/"
-out_path <- "~/Desktop/data/vignette_test_data/data/"
-cell_line_cols <- c("depmap_id","lua","pool_id")
-sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
+cell_line_cols <- c("depmap_id", "lua", "pool_id")
+sig_cols <- c("cell_set", "pert_name", "pert_dose", "pert_dose_unit", "day")
+W = NULL # confounder matrix
+k = 10 # number of cross validation folds
+
+# Cast the responses into a matrix
+collapsed_l2fc_column <- "median_l2fc"
+treatment_columns <- c("pert_id", "x_project_id", "pert_name", "pert_plate", "pert_dose")
+
+transform_function <- function(x){x}
+
+input_matrix <- collapsed_l2fc %>%
+  dplyr::filter(is.finite(.data[[collapsed_l2fc_column]])) %>%
+  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  reshape2::acast(depmap_id ~ cn, value.var = collapsed_l2fc_column, fun.aggregate = median) %>%
+  transform_function()
 
 # Calculate biomarkers ----
-collapsed_l2fc_column <- "median_l2fc"
-trt_cols_lfc = unique(c("day", sig_cols[grepl("pert", sig_cols)]))
-
 biomarkers <- multivariate_biomarker_table(
-
-    output_file_name = "median_l2fc_multivariate_biomarkers.csv",
-    treatment_columns = trt_cols_lfc,
-    response_column = lfc_column,
-    file = depmap_file)
+  Y = input_matrix,
+  treatment_columns = treatment_columns,
+  W = W,
+  file = depmap_file_path,
+  k = k
+)
 
 head(biomarkers)
 ```
 
-Calculating multivariate biomarkers with AUCs
-```{r example multivariate biomarker with aucs, echo = T, eval = F}
-dr_column <- "log2_auc"
-trt_cols_auc = unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
+Here is an example of how to calculate 
 
-biomarkers <- create_multivariate_biomarker_table(
-    in_path = drc_file,
-    out_path = out_path,
-    output_file_name = "log2_auc_multivariate_biomarkers.csv",
-    treatment_columns = trt_cols_auc,
-    response_column = dr_column,
-    depmap_file = bio_file)
+```{r example multivariate biomarker with aucs, echo = T, eval = F}
+
+response_column = "auc"
+
+input_matrix <- collapsed_l2fc %>%
+  dplyr::filter(is.finite(.data[[response_column]])) %>%
+  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  reshape2::acast(depmap_id ~ cn, value.var = response_column, fun.aggregate = median) %>%
+  transform_function()
+
+biomarkers <- multivariate_biomarker_table(
+  Y = input_matrix,
+  treatment_columns = treatment_columns,
+  W = W,
+  file = depmap_file_path,
+  k = k
+)
 
 head(biomarkers)
 ```
