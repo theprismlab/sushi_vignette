@@ -21,6 +21,7 @@ library(magrittr)
 norm_counts <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_normalized_counts.csv")
 l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_l2fc.csv")
 collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_collapsed_l2fc.csv")
+drc_table <- data.table::fread("~/Desktop/data/vignette_test_data/src/MTS_SEQ004_B40_COMPOUNDS_DRC_TABLE.csv")
 ```
 
 # Filter for encorafenib
@@ -32,6 +33,8 @@ collapsed_l2fc %<>% filter(pert_name == "ENCORAFENIB")
 
 CB_meta <- norm_counts %>% filter(!is.na(cb_name)) %>% 
   select(cb_name, cb_log2_dose, cb_ladder) %>% distinct()
+
+drc_table %<>% filter(pert_name == "ENCORAFENIB" | pert_type %in% c("trt_poscon"))
 ```
 
 # Write data into new folders
@@ -41,6 +44,7 @@ write.csv(norm_counts, "~/Desktop/data/vignette_test_data/data/normalized_counts
 write.csv(l2fc, "~/Desktop/data/vignette_test_data/data/l2fc.csv", row.names = F)
 write.csv(collapsed_l2fc, "~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv", row.names = F)
 write.csv(CB_meta, "~/Desktop/data/vignette_test_data/data/CB_meta.csv", row.names = F)
+write.csv(drc_table, "~/Desktop/data/vignette_test_data/data/drc_table.csv", row.names = F)
 ```
 
 

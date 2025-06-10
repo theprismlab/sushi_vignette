@@ -65,7 +65,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 ![](images/sushi_workflow.png)
 
-Sushi output files, their columns and definitions can be found on this spreadsheet. Columns sushi repeatedly uses to match cell line information are `depmap_id`, `lua`, `pool_id`, and `cell_set`.
+Details about Sushi output files, including column definitions, can be found in the accompanying spreadsheet `Sushi metadata files and column definitions.xlsx`. Columns sushi repeatedly uses to match cell line information are `depmap_id`, `lua`, `pool_id`, and `cell_set`. Groups of columns frequently used throughout the pipeline operations are `sig_cols`, variables describing each unique treatment (not including replicates), `id_cols`, variables describing a unique sample, and `cell_line_cols`, variables describing how a unique cell line is defined.
 
 # Getting started with Sushi
 **Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function. The all three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder.
@@ -75,8 +75,6 @@ The sushi pipeline github repository can be found at https://github.com/cmap/sus
 This vignette is located in the `sushi/vignette/` folder.
 
 This vignette uses encorafenib data found on the PRISM portal page of the *MTS_SEQ004_A_NEW_PIPELINE B40_COMPOUNDS* screen.
-
-Formats of input files can be found [*this will be an excel download, currently a GSheet*](https://docs.google.com/spreadsheets/d/1A_9OlCjcTVJIhe1zwQjdcVyT9K3wrL4FMv0HwimZoW4/edit?gid=0#gid=0)
 
 ## From sequencing output to pre-normalized counts
 This section describes steps taken to prepare PRISM sequencing data for normalization. **These steps are for internal processing only, and documentation is provided for completeness.**
@@ -382,55 +380,60 @@ it is due to issues relating to the initialization of the optimization of the fi
 Here is an example of a dose response curves
 ```{r drc plot, echo = T, eval = T}
 
-# Originial8 doses (for ticks and points)
-original_doses <- dose_response$minimum_dose * 3^(0:7)
-
-# Generate a smooth sequence of doses (for smooth curves)
-smooth_dose_seq <- function(min_dose) {
-  log_doses <- seq(log10(min_dose), log10(min_dose * 3^7), length.out = 100)
-  10^log_doses
+# Helper: generate allowed 3-fold doses ≤ 1
+get_doses_up_to_one <- function(min_dose) {
+  # Calculate max exponent such that min_dose * 3^n <= 1
+  max_exp <- floor(log(1 / min_dose) / log(3))
+  min_dose * 3^(0:max_exp)
 }
 
-# Create smooth dose-response curve per cell line
+# Smooth dose-response per cell line (more points for curve)
 smooth_df <- dose_response %>%
   rowwise() %>%
   do({
-    doses <- smooth_dose_seq(.$minimum_dose)
+    min_dose <- .$minimum_dose
+    max_dose <- 1
+    doses_smooth <- 10^seq(log10(min_dose), log10(max_dose), length.out = 100)
     tibble(
       depmap_id = .$depmap_id,
-      doses = doses,
-      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses / .$inflection)^.$slope)),
+      doses = doses_smooth,
+      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses_smooth / .$inflection)^.$slope)),
       ec50 = .$inflection
     )
   }) %>%
   ungroup()
 
-# Calculate points only at original 8 doses for each cell line
+# 3-fold doses per cell line, capped at 1 — for points & x-axis breaks
 points_df <- dose_response %>%
   rowwise() %>%
   do({
-    doses <- .$minimum_dose * 3^(0:7)
+    doses_orig <- get_doses_up_to_one(.$minimum_dose)
     tibble(
       depmap_id = .$depmap_id,
-      doses = doses,
-      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses / .$inflection)^.$slope))
+      doses = doses_orig,
+      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses_orig / .$inflection)^.$slope))
     )
   }) %>%
   ungroup()
 
+# Unique sorted tick locations for x-axis
+x_axis_breaks <- sort(unique(round(points_df$doses, 10)))
+
 # Plotting
 drc_plot <- ggplot() +
-  aes(x = doses, y = response, color = depmap_id) +
-  geom_line(data = smooth_df) +
-  geom_point(data = points_df) +
-  scale_x_log10(breaks = original_doses,
-                labels = scales::label_number(accuracy = 0.0001)) +
+  geom_line(data = smooth_df, aes(x = doses, y = response, color = depmap_id)) +
+  geom_point(data = points_df, aes(x = doses, y = response, color = depmap_id)) +
+  scale_x_log10(
+    breaks = x_axis_breaks,
+    labels = scales::label_number(accuracy = 0.0001)
+  ) +
   geom_vline(data = dose_response, aes(xintercept = inflection, color = depmap_id), linetype = "dashed") +
-  labs(title = "Dose-Response Curves for Cell Lines", 
-        x = "Doses (log10 scale)",
-        y = "Response") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90))
+  labs(
+    title = "Dose-Response Curves",
+    x = "Doses",
+    y = "Response"
+  ) +
+  theme_minimal()
 
 print(drc_plot)
 ```
@@ -468,7 +471,7 @@ sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
 # See all features 
 all_features <-  substr(setdiff(rhdf5::h5ls(depmap_file_path)$group, "/"), 2, 100)
 print(all_features)
-select_features <- NULL # if NULL, selects all feature sets
+select_features <- c("Expression", "Lineage", "CRISPR", "Mutation") # if NULL, selects all feature sets
 
 # Cast the responses into a matrix
 collapsed_l2fc_column <- "median_l2fc"
@@ -494,36 +497,89 @@ biomarkers <- univariate_biomarker_table(
 head(biomarkers)
 ```
 
+Biomarker plots
+
+```{r univar volcano plot, echo = T, eval = T}
+require(ggrepel)
+
+for(dataset in c("Expression", "CRISPR", "Mutation")) {
+  
+  if(dataset %in% c("Expression", "CRISPR")){
+    x = "correlation_coef"
+  }else if(dataset == "Mutation"){
+    x = "regression_coef"
+  }
+  
+  # Get top 10 hits ----
+  top_hits <- biomarkers %>%
+    filter(feature_set == dataset) %>%
+    separate(y, into = treatment_columns, sep = "::") %>%
+    filter(pert_name == "ENCORAFENIB") %>%
+    arrange(q_val) %>%
+    slice_head(n = 10)
+  
+  biomarkers_subset <- biomarkers %>%
+    filter(feature_set == dataset) %>%
+    separate(y, into = treatment_columns, sep = "::") %>%
+    filter(pert_name == "ENCORAFENIB") %>%
+    mutate(is_top_hit = ifelse(feature %in% top_hits$feature, "Top 10 Hit", "Other"))
+  
+  # Create volcano plot ----
+  plot <- biomarkers_subset %>%
+    ggplot() +
+    aes(x = !!rlang::sym(x), y = -log(q_val), color = is_top_hit) +
+    geom_point(size = 1, alpha = 0.4) +
+    facet_grid(pert_dose~.,) +  
+    geom_text_repel(data = filter(biomarkers_subset, is_top_hit == "Top 10 Hit"),
+                    aes(label = feature),
+                    size = 3,
+                    max.overlaps = Inf) +
+    scale_color_manual(values = c("Top 10 Hit" = "tomato1", "Other" = "cornflowerblue")) +
+    theme_minimal() +
+    theme(legend.position = "bottom") +
+    labs(title = paste0("Encorafenib Biomarkers using ", dataset," Data Across Doses"))
+  
+  print(plot)
+}
+
+# Plot lineage biomarkers ----
+
+biomarkers %>%
+  filter(feature_set == "Lineage") %>%
+  separate(y, into = treatment_columns, sep = "::") %>%
+  filter(pert_name == "ENCORAFENIB") %>%
+  ggplot() +
+  aes(x = fct_reorder(feature, regression_coef, .fun = median), y = regression_coef, color = feature, fill = feature) +
+  geom_boxplot(alpha = 0.4) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Encorafenib Biomarkers using Mutation Data Across Doses")
+
+```
+
 If you have AUCs in your data, here is an example of how to calculate univariate biomarkers using them.
 ```{r example univariate biomarker with aucs, echo = T, eval = F}
 dr_column <- "log2_auc"
+
 trt_cols_auc <- unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
 
-biomarkers <- univariate_biomarker_table(
-  Y = input_matrix,
+input_matrix_auc <- drc_table %>%
+  dplyr::filter(is.finite(.data[[dr_column]])) %>%
+  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  reshape2::acast(depmap_id ~ cn, value.var = dr_column, fun.aggregate = median) %>%
+  transform_function()
+
+biomarkers_auc <- univariate_biomarker_table(
+  Y = input_matrix_auc,
   file = depmap_file,
     output_file_name = "log2_auc_univariate_biomarkers.csv",
     treatment_columns = trt_cols_auc,
     response_column = dr_column)
 
-head(biomarkers)
+head(biomarkers_auc)
 ```
 
-Volcano plot example
-```{r univar volcano plot, echo = T, eval = T}
-biomarkers %>%
-  filter(feature_set == "Expression") %>%
-  separate(y, into = treatment_columns, sep = "::") %>%
-  filter(pert_name == "ENCORAFENIB") %>%
-  ggplot() +
-  aes(x = correlation_coef, y = -log(q_val)) +
-  geom_point(size = 1, color = "cornflowerblue", alpha = 0.4) +
-  facet_grid(pert_dose~.,) +  
-  theme_minimal() +
-  theme(legend.position = "bottom") +
-  labs(title = "Encorafenib Biomarkers using Gene Expression")
 
-```
 
 
 ### Multivariate biomarker analysis {.tabset}
