@@ -475,13 +475,13 @@ select_features <- c("Expression", "Lineage", "CRISPR", "Mutation") # if NULL, s
 
 # Cast the responses into a matrix
 collapsed_l2fc_column <- "median_l2fc"
-treatment_columns <- c("pert_id", "x_project_id", "pert_name", "pert_plate", "pert_dose")
+trt_cols_lfc = unique(c("day", sig_cols[grepl("pert", sig_cols)]))
 
 transform_function <- function(x){x}
 
 input_matrix <- collapsed_l2fc %>%
   dplyr::filter(is.finite(.data[[collapsed_l2fc_column]])) %>%
-  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  tidyr::unite(cn, trt_cols_lfc, sep = "::") %>%
   reshape2::acast(depmap_id ~ cn, value.var = collapsed_l2fc_column, fun.aggregate = median) %>%
   transform_function()
 
@@ -491,17 +491,16 @@ trt_cols_lfc <- unique(c("day", sig_cols[grepl("pert", sig_cols)]))
 biomarkers <- univariate_biomarker_table(
   Y = input_matrix,
   file = depmap_file_path,
-  features = select_features
-)
+  features = select_features)
 
 head(biomarkers)
 ```
 
-Biomarker plots
-
+##### Biomarker volcano plots
 ```{r univar volcano plot, echo = T, eval = T}
 require(ggrepel)
 
+# Expression, CRISPR, and mutation volcano plots ----
 for(dataset in c("Expression", "CRISPR", "Mutation")) {
   
   if(dataset %in% c("Expression", "CRISPR")){
@@ -513,14 +512,14 @@ for(dataset in c("Expression", "CRISPR", "Mutation")) {
   # Get top 10 hits ----
   top_hits <- biomarkers %>%
     filter(feature_set == dataset) %>%
-    separate(y, into = treatment_columns, sep = "::") %>%
+    separate(y, into = trt_cols_lfc, sep = "::") %>%
     filter(pert_name == "ENCORAFENIB") %>%
     arrange(q_val) %>%
     slice_head(n = 10)
   
   biomarkers_subset <- biomarkers %>%
     filter(feature_set == dataset) %>%
-    separate(y, into = treatment_columns, sep = "::") %>%
+    separate(y, into = trt_cols_lfc, sep = "::") %>%
     filter(pert_name == "ENCORAFENIB") %>%
     mutate(is_top_hit = ifelse(feature %in% top_hits$feature, "Top 10 Hit", "Other"))
   
@@ -541,44 +540,44 @@ for(dataset in c("Expression", "CRISPR", "Mutation")) {
   
   print(plot)
 }
-
-# Plot lineage biomarkers ----
-
-biomarkers %>%
-  filter(feature_set == "Lineage") %>%
-  separate(y, into = treatment_columns, sep = "::") %>%
-  filter(pert_name == "ENCORAFENIB") %>%
-  ggplot() +
-  aes(x = fct_reorder(feature, regression_coef, .fun = median), y = regression_coef, color = feature, fill = feature) +
-  geom_boxplot(alpha = 0.4) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(title = "Encorafenib Biomarkers using Mutation Data Across Doses")
-
 ```
 
-If you have AUCs in your data, here is an example of how to calculate univariate biomarkers using them.
-```{r example univariate biomarker with aucs, echo = T, eval = F}
+##### If you have AUCs, here is an example of how to calculate univariate biomarkers using them.
+```{r example univariate biomarker with aucs, echo = T, eval = T}
+# Biomarkers using AUC from DRC output ----
+drc_table <- data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
 dr_column <- "log2_auc"
 
 trt_cols_auc <- unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
 
 input_matrix_auc <- drc_table %>%
   dplyr::filter(is.finite(.data[[dr_column]])) %>%
-  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  tidyr::unite(cn, trt_cols_auc, sep = "::") %>%
   reshape2::acast(depmap_id ~ cn, value.var = dr_column, fun.aggregate = median) %>%
   transform_function()
 
 biomarkers_auc <- univariate_biomarker_table(
   Y = input_matrix_auc,
-  file = depmap_file,
-    output_file_name = "log2_auc_univariate_biomarkers.csv",
-    treatment_columns = trt_cols_auc,
-    response_column = dr_column)
+  file = depmap_file_path,
+  features = select_features)
 
 head(biomarkers_auc)
 ```
 
+##### Lineage enrichment boxplots
+```{r}
+# Lineage boxplots ----
+biomarkers_auc %>%
+  filter(feature_set == "Lineage") %>%
+  separate(y, into = trt_cols_auc, sep = "::") %>%
+  filter(pert_name == "ENCORAFENIB") %>%
+  ggplot() +
+  aes(x = fct_reorder(feature, correlation_coef, .fun = median), y = correlation_coef, color = feature, fill = feature) +
+  geom_boxplot(alpha = 0.4) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
+```
 
 
 
