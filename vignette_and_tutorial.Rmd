@@ -596,7 +596,7 @@ For each feature of each model, feature importance is computed after normalizati
 
 Here is an example of how to run the multivariate biomarker function on your data. Inputs are the similar to those for the univariate biomarker function. `W` is confounder matrix. It should not contain and NAs, rows are indexed by depmap_ids and aligned with Y. Its default is NULL. `k` is the number of cross validation fold, and its default is 10.
 
-```{r example multivariate biomarker, echo = T, eval = F}
+```{r example multivariate biomarker, echo = T, eval = T}
 # Load into environment ----
 require(data.table)
 require(magrittr)
@@ -613,60 +613,57 @@ depmap_file_path <- "~/Desktop/data/vignette_test_data/data/prism_biomarker_publ
 collapsed_l2fc <- data.table::fread("~/Desktop/data/vignette_test_data/data/collapsed_l2fc.csv")
 cell_line_cols <- c("depmap_id", "lua", "pool_id")
 sig_cols <- c("cell_set", "pert_name", "pert_dose", "pert_dose_unit", "day")
-W = NULL # confounder matrix
+W = NULL # confounding matrix
 k = 10 # number of cross validation folds
 
 # Cast the responses into a matrix
 collapsed_l2fc_column <- "median_l2fc"
-treatment_columns <- c("pert_id", "x_project_id", "pert_name", "pert_plate", "pert_dose")
+trt_cols_lfc = unique(c("day", sig_cols[grepl("pert", sig_cols)]))
 
 transform_function <- function(x){x}
 
 input_matrix <- collapsed_l2fc %>%
   dplyr::filter(is.finite(.data[[collapsed_l2fc_column]])) %>%
-  tidyr::unite(cn, treatment_columns, sep = "::") %>%
+  tidyr::unite(cn, trt_cols_lfc, sep = "::") %>%
   reshape2::acast(depmap_id ~ cn, value.var = collapsed_l2fc_column, fun.aggregate = median) %>%
   transform_function()
 
 # Calculate biomarkers ----
 biomarkers <- multivariate_biomarker_table(
   Y = input_matrix,
-  treatment_columns = treatment_columns,
   W = W,
   file = depmap_file_path,
   k = k
 )
 
-head(biomarkers)
+biomarkers %>% arrange(., -RF.imp.mean) %>% head()
 ```
 
-Here is an example of how to calculate 
+##### Here is an example of how to calculate multivariate biomarkers with AUCs
 
-```{r example multivariate biomarker with aucs, echo = T, eval = F}
+```{r example multivariate biomarker with aucs, echo = T, eval = T}
 
-response_column = "auc"
+drc_table <- data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
+dr_column <- "log2_auc"
 
-input_matrix <- collapsed_l2fc %>%
-  dplyr::filter(is.finite(.data[[response_column]])) %>%
-  tidyr::unite(cn, treatment_columns, sep = "::") %>%
-  reshape2::acast(depmap_id ~ cn, value.var = response_column, fun.aggregate = median) %>%
+trt_cols_auc <- unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
+
+input_matrix_auc <- drc_table %>%
+  dplyr::filter(is.finite(.data[[dr_column]])) %>%
+  tidyr::unite(cn, trt_cols_auc, sep = "::") %>%
+  reshape2::acast(depmap_id ~ cn, value.var = dr_column, fun.aggregate = median) %>%
   transform_function()
 
-biomarkers <- multivariate_biomarker_table(
-  Y = input_matrix,
-  treatment_columns = treatment_columns,
+
+biomarkers_auc <- multivariate_biomarker_table(
+  Y = input_matrix_auc,
   W = W,
   file = depmap_file_path,
   k = k
 )
 
-head(biomarkers)
+biomarkers_auc %>% arrange(., -RF.imp.mean) %>% head()
 ```
-
-## Frequently asked questions
-
-*Some FAQs should be added here*
-
 
 # R environment information
 
