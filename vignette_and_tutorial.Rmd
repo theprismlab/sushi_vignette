@@ -546,7 +546,7 @@ for(dataset in c("Expression", "CRISPR", "Mutation")) {
 ```{r example univariate biomarker with aucs, echo = T, eval = T}
 # Biomarkers using AUC from DRC output ----
 drc_table <- data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
-dr_column <- "log2_auc"
+dr_column <- "auc"
 
 trt_cols_auc <- unique(c("day", sig_cols[grepl("pert", sig_cols) & !grepl("dose", sig_cols)]))
 
@@ -565,7 +565,7 @@ head(biomarkers_auc)
 ```
 
 ##### Lineage enrichment boxplots
-```{r}
+```{r example univariate lineage boxplots, echo = T, eval = T}
 # Lineage boxplots ----
 biomarkers_auc %>%
   filter(feature_set == "Lineage") %>%
