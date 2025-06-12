@@ -408,28 +408,23 @@ smooth_df <- dose_response %>%
   ungroup()
 
 # 3-fold doses per cell line, capped at 1 — for points & x-axis breaks
-points_df <- dose_response %>%
-  rowwise() %>%
-  do({
-    doses_orig <- get_doses_up_to_one(.$minimum_dose)
-    tibble(
-      depmap_id = .$depmap_id,
-      line_annot = .$line_annot,
-      doses = doses_orig,
-      response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses_orig / .$inflection)^.$slope))
-    )
-  }) %>%
-  ungroup()
+l2fc %<>%
+  filter(depmap_id %in% select_cell_lines) %>%
+  mutate(viability = pmin(2^l2fc, cap_for_viability)) %>%
+  group_by(!!!rlang::syms(c(sig_cols, "bio_rep", "depmap_id", "lua", "pool_id"))) %>%
+  summarise(viability = median(viability)) %>%
+  ungroup() %>%
+  mutate(line_annot = ifelse(depmap_id == "ACH-000008", 
+                                              "ACH-000008 - BRAF mut", "ACH-000810 - no BRAF mut"))
 
 # Unique sorted tick locations for x-axis
-x_axis_breaks <- sort(unique(round(points_df$doses, 8)))
+x_axis_breaks <- sort(unique(round(l2fc$pert_dose, 6)))
 
 # Plotting
 drc_plot <- ggplot() +
   geom_line(data = smooth_df, aes(x = doses, y = response, color = line_annot)) +
-  geom_point(data = points_df, aes(x = doses, y = response, color = line_annot)) +
-  scale_x_log10(breaks = x_axis_breaks,
-                labels = scales::label_number(accuracy = 0.0001)) +
+  geom_point(data = l2fc, aes(x = pert_dose, y = viability, color = line_annot, group = depmap_id), alpha = 0.6) +
+  scale_x_log10(breaks = x_axis_breaks) +
   geom_vline(data = dose_response, aes(xintercept = inflection, color = line_annot), linetype = "dashed") +
   labs(title = "Dose-Response Curves",
        x = "Doses",
