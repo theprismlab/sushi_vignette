@@ -357,7 +357,7 @@ treatment_cols <- union(
 
 # FIT DRC curves ----
 
-select_cell_lines <- c("ACH-000219", "ACH-000810")
+select_cell_lines <- c("ACH-000008", "ACH-000810")
 
 dose_response <- create_drc_table(LFC = l2fc %>% filter(depmap_id %in% select_cell_lines),
                                 cell_line_cols = cell_line_cols,
@@ -380,6 +380,9 @@ it is due to issues relating to the initialization of the optimization of the fi
 Here is an example of a dose response curves
 ```{r drc plot, echo = T, eval = T}
 
+dose_response %<>% mutate(line_annot = ifelse(depmap_id == "ACH-000008", 
+                                              "ACH-000008 - BRAF mut", "ACH-000810 - no BRAF mut"))
+
 # Helper: generate allowed 3-fold doses ≤ 1
 get_doses_up_to_one <- function(min_dose) {
   # Calculate max exponent such that min_dose * 3^n <= 1
@@ -396,6 +399,7 @@ smooth_df <- dose_response %>%
     doses_smooth <- 10^seq(log10(min_dose), log10(max_dose), length.out = 100)
     tibble(
       depmap_id = .$depmap_id,
+      line_annot = .$line_annot,
       doses = doses_smooth,
       response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses_smooth / .$inflection)^.$slope)),
       ec50 = .$inflection
@@ -410,6 +414,7 @@ points_df <- dose_response %>%
     doses_orig <- get_doses_up_to_one(.$minimum_dose)
     tibble(
       depmap_id = .$depmap_id,
+      line_annot = .$line_annot,
       doses = doses_orig,
       response = .$upper_limit + ((.$lower_limit - .$upper_limit) / (1 + (doses_orig / .$inflection)^.$slope))
     )
@@ -417,22 +422,19 @@ points_df <- dose_response %>%
   ungroup()
 
 # Unique sorted tick locations for x-axis
-x_axis_breaks <- sort(unique(round(points_df$doses, 10)))
+x_axis_breaks <- sort(unique(round(points_df$doses, 8)))
 
 # Plotting
 drc_plot <- ggplot() +
-  geom_line(data = smooth_df, aes(x = doses, y = response, color = depmap_id)) +
-  geom_point(data = points_df, aes(x = doses, y = response, color = depmap_id)) +
-  scale_x_log10(
-    breaks = x_axis_breaks,
-    labels = scales::label_number(accuracy = 0.0001)
-  ) +
-  geom_vline(data = dose_response, aes(xintercept = inflection, color = depmap_id), linetype = "dashed") +
-  labs(
-    title = "Dose-Response Curves",
-    x = "Doses",
-    y = "Response"
-  ) +
+  geom_line(data = smooth_df, aes(x = doses, y = response, color = line_annot)) +
+  geom_point(data = points_df, aes(x = doses, y = response, color = line_annot)) +
+  scale_x_log10(breaks = x_axis_breaks,
+                labels = scales::label_number(accuracy = 0.0001)) +
+  geom_vline(data = dose_response, aes(xintercept = inflection, color = line_annot), linetype = "dashed") +
+  labs(title = "Dose-Response Curves",
+       x = "Doses",
+       y = "Response",
+       color = "Cell line annotation") +
   theme_minimal()
 
 print(drc_plot)
@@ -574,6 +576,7 @@ biomarkers_auc %>%
   ggplot() +
   aes(x = fct_reorder(feature, correlation_coef, .fun = median), y = correlation_coef, color = feature, fill = feature) +
   geom_boxplot(alpha = 0.4) +
+  geom_point(alpha = 0.5) +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
