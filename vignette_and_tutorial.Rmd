@@ -209,7 +209,7 @@ A PRISM screen incorporates multiple types of replicates to enhance the reliabil
 
 * **Technical replicates** (`tech_rep`) are repeated PCR reactions of the same biological sample under the same treatment conditions. 
 
-Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc.R`) first takes the average across technical replicates. Then, the mean is taken since there are typically fewer technical replicates than biological replicates and there is less variability between technical replicates. Finally, log2 fold change is computed by comparing these means to those of the negative control samples, using the formula:
+Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc.R`) first takes the average across technical replicates. The mean is taken since there are typically fewer technical replicates than biological replicates and there is less variability between technical replicates. Finally, log2 fold change is computed by comparing the means to the medians of the negative control samples, using the formula:
 $$
 L2FC_{i,j} = log_2( \frac{x_{t_{i,j}}}{x_{nc_{i,j}}}) 
 $$
@@ -340,7 +340,7 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 
 Here is an example of how to run the dose_response module on your own data.`dose_cols` is a list of columns containing perturbagen doses, which is used to check that there is only one column with doses. `type_col` is a string designating which column denotes the type of treatment that each sample is, and `cap_of_viability` is the maximum value given to a cell line's viability.
 
-For the sake of the example, two cell lines were chosen: both with skin lineage, but one with a BRAF mutation and the other without.
+The following example uses two cell, one with a BRAF mutation and one without, in the presense of Encorafenib.
 ```{r example drc, echo = T, eval = T}
 # Load into environment ----Add commentMore actions
 require(dr4pl)
