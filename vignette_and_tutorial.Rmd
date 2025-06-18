@@ -61,7 +61,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 # Sushi pipeline overview
-**Sushi** is the PRISM data processing pipeline that converts raw PRISM barcode counts, obtained from sequencing data, into normalized counts and log2 fold changes (L2FCs). A quick overview of the key parts of the pipeline is described below. First, in the **collate_counts** module, raw counts of PRISM barcodes from individual flow cells and flow cell lanes are aggregated appropriately. The **filter_counts** module maps each barcode to its corresponding cell line or control barcode identity and removes any spurious barcodes. The **normalize** module then normalizes raw cell line counts using spiked-in control barcodes to control for variability in PCR or DNA concentration. Next, **compute_l2fc** calculates L2FCs for each cell line in each treatment replicate. Treatment replicates are further collapsed in **collapse_replicates**, which computes L2FCs across replicates. The **qc_tables** module then performs quality control to flag low quality pcr wells or cell lines, with bad wells being removed from  the normalized counts file and unreliable cell lines being removed from the log fold change file. The **Dose_response** module fits dose–response curves using cell line viability (2^L2FC) for each treatment, and uses this to compute AUC (Area Under Curve) values. Finally, univariate and multivariate associations between L2FC/AUCs values and DepMap feature data are performed in the **biomarker** module. The output files containing normalized counts, LFC, and collapsed LFC are partitioned by collaborator, then used for downstream dose-response and biomarker analysis, and shared via the PRISM Portal.
+**Sushi** is the PRISM data processing pipeline that converts raw PRISM barcode counts, obtained from sequencing data, into normalized counts and log2 fold changes (L2FCs). A quick overview of the key parts of the pipeline is described below. First, in the **collate_counts** module, raw counts of PRISM barcodes from individual flow cells and flow cell lanes are aggregated appropriately. The **filter_counts** module maps each barcode to its corresponding cell line or control barcode identity and removes any spurious barcodes. The **normalize** module then normalizes raw cell line counts using spiked-in control barcodes to control for variability in PCR or DNA concentration. Next, **compute_l2fc** calculates L2FCs for each cell line in each treatment replicate. Treatment replicates are further collapsed in **collapse_replicates**, which computes L2FCs across replicates. The **qc_tables** module then performs quality control to flag low quality pcr wells or cell lines, with poorly performing wells being removed from the normalized counts file and unreliable cell lines being removed from the log fold change file. The **dose_response** module fits dose–response curves using cell line viability (2^L2FC) for each treatment, and uses this to compute AUC (Area Under Curve) values. Finally, univariate and multivariate associations between L2FC/AUCs values and DepMap feature data are performed in the **biomarker** module. The output files containing normalized counts, LFC, and collapsed LFC are partitioned by collaborator, then used for downstream dose-response and biomarker analysis (@UW: if we include this part, should specify that the DRC/biomarker here is the same as mentioned above) and shared via the PRISM Portal.
 
 @UW: please update image below to have the names corresponding to the sushi modules. Would be nice to add a QC module box in this visual as well (it will have multiple in/out arrows, so it can be a little out of the line).Also, filtering of cell lines happens in QC rather than in compute_l2fc. 
 ![](images/sushi_workflow.png)
@@ -73,13 +73,13 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 # Getting started with Sushi
 **Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. The sushi pipeline github repository can be found at <https://github.com/cmap/sushi/tree/main>
-It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function. All three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder. This vignette is located in the `sushi/vignette/` folder.
+It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially (@UW: these bash scripts do not have an impact on execution order, that's the launch_job script) execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function (@UW: functions). All three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder. This vignette is located in the `sushi/vignette/` folder.
 
 This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded <here>
 @UW update link.
 
 Sushi uses a few important groups of columns during data processing. It is helpful to be familiar with these columns to follow the data processing steps. These are:
-`cell_line_cols`: columns used to identify a unique instance of a barcoded cell line  are `depmap_id`, `lua`, `pool_id`, and `cell_set`;
+`cell_line_cols`: columns used to identify a unique instance of a barcoded cell line. These are `depmap_id`, `lua`, `pool_id`, and `cell_set`;
 `sig_cols`: columns used to describe each unique treatment condition at the collapsed LFC level (i.e., not including replicates);
 `id_cols` columns identifying each unique PCR sample;
 `control_cols` columns that help identify the appropriate control wells for a given treatment.
@@ -92,12 +92,12 @@ This section describes steps taken to prepare PRISM sequencing data for normaliz
 
 ![](images/prenormalized_counts_workflow.png)
 
-To generate barcode counts from FASTQ files, we use an internal pipeline. It demultiplexes the data from different flow-cells  based on index barcodes which identify the PCR plate and PCR well of origin. The pipeline outputs counts of the barcodes detected in the expertiment which is then mapped to cell line and spike-in control barcodes. Alongside this process, internal PRISM databases  are queried for experiment and cell line metadata.
+To generate barcode counts from FASTQ files, we use an internal pipeline. It demultiplexes the data from different flow-cells  based on index barcodes which identify the PCR plate and PCR well of origin. The pipeline outputs counts of the barcodes detected in the experiment. These are then mapped to cell line and spike-in control barcodes. Alongside this process, internal PRISM databases are queried for experiment and cell line metadata.
 
 
-To obtain the cumulative raw counts of each barcode detected in each sample across all flow cells and lanes, the **collate_fastq_reads** module (`sushi/scripts/collate_fastq_reads.R`) aggregates the counts. Barcodes are categorized as either recognized or unknown. A barcode is considered recognized if its sequence is associated with a cell line or control barcode in the PRISM collection.
+To obtain the cumulative raw counts of each barcode detected in each sample across all flow cells and lanes, the **collate_counts** module (`sushi/scripts/collate_counts/collate_counts.R`) aggregates the counts. Barcodes are categorized as either recognized or unknown. A barcode is considered recognized if its sequence is associated with a cell line or control barcode in the PRISM collection.
 
-Next, the **filter_counts** module (`sushi/scripts/filter_counts.R`) filters the count data to just barcodes that are supposed to have been present in the particular experimental condition. Barcodes associated with cell lines added to the condition, but not detected by the sequencer (likely due to strong killing) are imputed with a count of zero. Finally, the module removes any data flagged internall for reasons like dosing failure reported in instrument logs or cell line quality concerns based on STR profiling. 
+Next, the **filter_counts** module (`sushi/scripts/filter_counts/filter_counts.R`) filters the count data to just barcodes that are supposed to have been present in the particular experimental condition. Barcodes associated with cell lines added to the condition, but not detected by the sequencer (likely due to strong killing) are imputed with a count of zero. Finally, the module removes any data flagged internally for reasons like dosing failure reported in instrument logs or cell line quality concerns based on STR profiling.
 
 
 
@@ -105,7 +105,9 @@ Next, the **filter_counts** module (`sushi/scripts/filter_counts.R`) filters the
 
 ### Description
 
-To correct for amplification differences between wells, control barcodes at fixed concentrations are spiked into each PCR well. The raw counts of the control barcodes obtained from each well are linearly proportional to their input amount. The median of this proportionality factor is then used to scale raw counts in each well and obtain normalized counts in the **CB_normalize** module (`sushi/scripts/CB_normalize.R`). The CB_normalize module requires `filtered_counts.csv` and `CB_meta.csv` files as inputs. Although these files are not available to collaborators, the essential content used to normalze data is present in the normalized counts file shared to collaborators.
+
+To correct for amplification differences between wells, control barcodes at fixed concentrations are spiked into each PCR well. The raw counts of the control barcodes obtained from each well are linearly proportional to their input amount. The median of this proportionality factor is then used to scale raw counts in each well and obtain normalized counts in the **CB_normalize** module (`sushi/scripts/CB_normalize.R`). The CB_normalize module requires `filtered_counts.csv` and `CB_meta.csv` files as inputs. Although these files are not available to collaborators, the essential content used to normalize data is present in the normalized counts file shared to collaborators.
+
 
 For each combination of PCR plate, PCR well, and control barcode dosage: the dose intercept (`dose_intercept`) is the difference between the mean known log2 dose of the control barcode and the mean log2 raw count (plus a pseudocount). Then, for each PCR plate and PCR well, compute the control barcode intercept (`cb_intercept`) as the median of the dose intercepts across all control barcodes in that well.
 
@@ -171,7 +173,7 @@ normalized_counts %>%
 
 **Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how many QC metrics are calculated through this code.**
 
-At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/src/qc_tables.R`).
+At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/qc_tables/qc_tables.R`).
 
 ### Measures of cell line quality
 
@@ -212,6 +214,7 @@ A PRISM screen may incorporate multiple types of replicates that is denoted as b
 * **Technical replicates** (`tech_rep`) are repeated PCR reactions of the same biological sample under the same treatment conditions. 
 
 Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc.R`) first computes the mean normalized counts across technical replicates since there is less variability between technical replicates compared to biological replicates. Then, log2 fold change is computed by comparing these means to those of the negative control samples, using the formula:
+
 $$
 L2FC_{i,j} = log_2( \frac{x_{t_{i,j}}}{x_{nc_{i,j}}}) 
 $$
@@ -310,7 +313,7 @@ Although Sushi processes the entire screen—including all submitted compounds�
 
 ### General Description
 
-The **dose_response** module (`sushi/scripts/dose_reponse.R`) fits 4-parameter dose-response curves (DRCs) to the viability (fold-change with respect to DMSO) of each cell line in all replicates that pass QC. The four parameters are upper limit ($UL$), lower limit ($LL$), slope ($s$), and inflection point ($EC50$).
+The **drc** module (`sushi/scripts/drc/dose_reponse.R`) fits 4-parameter dose-response curves (DRCs) to the viability (fold-change with respect to DMSO) of each cell line in all replicates that pass QC. The four parameters are upper limit ($UL$), lower limit ($LL$), slope ($s$), and inflection point ($EC50$).
 The equation for the curve is defined as:
 
 $$
@@ -344,7 +347,7 @@ In scenarios where no fit converges, fit parameters for the cell line are not pr
 
 Here is an example of how to run the dose_response module on your own data.`dose_cols` is a list of columns containing perturbagen doses, which is used to check that there is only one column with doses. `type_col` is a string designating which column denotes the type of treatment that each sample is, and `cap_of_viability` is the maximum value given to a cell line's viability.
 
-For the sake of the example, two cell lines were chosen: both with skin lineage, but one with a BRAF mutation and the other without.
+The following example uses two cell, one with a BRAF mutation and one without, in the presense of Encorafenib.
 ```{r example drc, echo = T, eval = T}
 # Load into environment ----Add commentMore actions
 require(dr4pl)
@@ -451,7 +454,32 @@ drc_plot <- ggplot() +
 print(drc_plot)
 ```
 
+### Lineage enrichment boxplots
+
+
+
+```{r example univariate lineage boxplots, echo = T, eval = T}
+drc_table = data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
+
+lineages <- rhdf5::h5read(depmap_file_path, name = "Lineage_Table/table")
+# Strip hdf5 columns of dimensionality before use
+lineages[] <- lapply(lineages, as.vector)
+dose_response %<>% dplyr::inner_join(lineages, by = "depmap_id")
+
+dose_response %>%
+  ggplot(aes(x = lineage, y = auc, fill = lineage, color = lineage)) +
+  geom_boxplot(alpha = 0.4) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
+```
+
+
 ## Identifying biomarkers
+
+@UW: We should add some description of what is contained in the H5 biomarker file, and how we generate it.
 
 ### Univariate biomarker analysis {.tabset}
 
@@ -582,27 +610,6 @@ biomarkers_auc <- univariate_biomarker_table(
 
 head(biomarkers_auc )
 ```
-
-##### Lineage enrichment boxplots
-
-
-@UW Please remove the lineage section if fixing the lineage plots is hard
-
-```{r example univariate lineage boxplots, echo = T, eval = T}
-# Lineage boxplots ----
-biomarkers_auc %>%
-  filter(feature_set == "Lineage") %>%
-  separate(y, into = trt_cols_auc, sep = "::") %>%
-  filter(pert_name == "ENCORAFENIB") %>%
-  ggplot() +
-  aes(x = fct_reorder(feature, correlation_coef, .fun = median), y = correlation_coef, color = feature, fill = feature) +
-  geom_boxplot(alpha = 0.4) +
-  geom_point(alpha = 0.5) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
-```
-
 
 
 ### Multivariate biomarker analysis {.tabset}
