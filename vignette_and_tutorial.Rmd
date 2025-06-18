@@ -446,6 +446,29 @@ drc_plot <- ggplot() +
 print(drc_plot)
 ```
 
+### Lineage enrichment boxplots
+
+
+
+```{r example univariate lineage boxplots, echo = T, eval = T}
+drc_table = data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
+
+lineages <- rhdf5::h5read(depmap_file_path, name = "Lineage_Table/table")
+# Strip hdf5 columns of dimensionality before use
+lineages[] <- lapply(lineages, as.vector)
+dose_response %<>% dplyr::inner_join(lineages, by = "depmap_id")
+
+dose_response %>%
+  ggplot(aes(x = lineage, y = auc, fill = lineage, color = lineage)) +
+  geom_boxplot(alpha = 0.4) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
+```
+
+
 ## Identifying biomarkers
 
 ### Univariate biomarker analysis {.tabset}
@@ -571,31 +594,6 @@ biomarkers_auc <- univariate_biomarker_table(
 
 head(biomarkers_auc)
 ```
-
-##### Lineage enrichment boxplots
-```{r example univariate lineage boxplots, echo = T, eval = T}
-# YL - I'm using aucs from DRC here. It looks like that is what the portal is using.
-drc_table = data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
-# Lineage info may not be in this table....
-
-# If its not in the file, then you can join it using the code below.
-# You will need the hf data file
-lineages <- rhdf5::h5read(biomarker_path, name = "Lineage_Table/table")
-# Strip hdf5 columns of dimensionality before use
-lineages[] <- lapply(lineages, as.vector)
-drc_table = drc_table %>% dplyr::inner_join(lineages, by = "depmap_id")
-
-drc_table %>%
-  ggplot(aes(x = lineage, y = auc, fill = lineage)) %>%
-  geom_boxplot(alpha = 0.4) +
-  geom_point(alpha = 0.5) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
-```
-
-
 
 ### Multivariate biomarker analysis {.tabset}
 
