@@ -488,10 +488,12 @@ dose_response %>%
 For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, gene expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. (The regression coefficient equals the difference in means of the two groups.) Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
 
 
-@UW changing the aspect ratio of the volcano plots will be helpful. I think its okay to use facet_wrap with multiple columns to update the aspect ratio
+@UW I think it is important to change the aspect ratio of the volcano plots I think its okay to use facet_wrap with multiple columns to make the  aspect ratio of each plot better. In future versions, we should try out a better visualization for some of this. But for now, in the interest of time, just aspect ratio fixing shuld be fine
 
 
 @UW Can you add arrange(qval) when printing out the two biomarker files using head( ) below
+
+
 
 #### Example
 
