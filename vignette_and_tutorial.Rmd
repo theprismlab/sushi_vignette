@@ -105,16 +105,19 @@ Next, the **filter_counts** module (`sushi/scripts/filter_counts/filter_counts.R
 
 ### Description
 
-To correct for amplification differences between wells, each PCR well contains 10 spiked-in control barcodes at known concentrations. In **normalize** (`sushi/scripts/normalize/normalize.R`), the raw counts obtained in each well are linearly proportional to the input amount of each barcode. The median of this proportionality factor is then used to scale raw counts in each well and obtain normalized counts. CB_normalize requires `filtered_counts.csv` and `CB_meta.csv` files as inputs.
+
+To correct for amplification differences between wells, control barcodes at fixed concentrations are spiked into each PCR well. The raw counts of the control barcodes obtained from each well are linearly proportional to their input amount. The median of this proportionality factor is then used to scale raw counts in each well and obtain normalized counts in the **normalize** module (`sushi/scripts/normalize/normalize.R``). The CB_normalize module requires `filtered_counts.csv` and `CB_meta.csv` files as inputs. Although these files are not available to collaborators, the essential content used to normalize data is present in the normalized counts file shared to collaborators.
+
 
 For each combination of PCR plate, PCR well, and control barcode dosage: the dose intercept (`dose_intercept`) is the difference between the mean known log2 dose of the control barcode and the mean log2 raw count (plus a pseudocount). Then, for each PCR plate and PCR well, compute the control barcode intercept (`cb_intercept`) as the median of the dose intercepts across all control barcodes in that well.
 
 You may recreate the necessary input from your level 3 data or normalized and raw counts data download found on your PRISM Portal page and using the following commands in your terminal window:
-
+@UW what commands do you mean here? Is it the next example?
 
 ### Example
 
-Here an example of how to test run module on your own data from the PRISM portal. Although `filtered_counts.csv` and `CB_meta.csv` are not provided, they can be made from the normalized data download and the data column definition spreadsheet as a reference. The `pseudocount` is a count we add to raw counts when taking the log2 transform. `input_id_cols` is a vector of column identifying unique samples.
+Here, we describe an example of how to test run module on your own data from the PRISM portal. Although `filtered_counts.csv` and `CB_meta.csv` are not provided, they can be made from the normalized data download and the data column definition spreadsheet as a reference. The `pseudocount` is a count we add to raw counts when taking the log2 transform. `input_id_cols` is a vector of column identifying unique samples.
+@UW: If they dont the files for running this function, we need to either provide code to make those files or describe how to make them.
 
 ```{r example normalization, echo = T, eval = T}
 # Load into environment ----
@@ -139,7 +142,8 @@ head(normalized_counts)
 
 ```
 
-IMAGE OF PRETTY CONTROL BARCODE LADDER FROM MTS of one well
+Example of raw counts-input dose relationship of the spiked-in control barcodes in a single PCR well is shown below:
+
 ```{r ex cb ladder, echo = T, eval = T}
 # Load into environment ----
 library(ggrepel)
@@ -167,17 +171,17 @@ normalized_counts %>%
 
 ### General Description
 
-**Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how metrics are calculated in the publically available code.**
+**Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how many QC metrics are calculated through this code.**
 
 At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/qc_tables/qc_tables.R`).
 
 ### Measures of cell line quality
 
-The following four metrics define cell line failure on a particular PCR plate. The cell line may pass on other PCR plates containing treatment replicates. If only one replicate of the cell line passes across all PCR plates containing the cell line, then the cell is deemed to have failed at the pert plate (set of replicates that may be across PCR plate) level. Log2-viability data from passing cell lines are provided in downloads files. 
+The following four metrics define cell line failure on a particular PCR plate. Note that the two metrics utilizing a positive control are only used if there are is a positive control in the experiment. The cell line may pass on other PCR plates containing treatment replicates. If only one replicate of the cell line passes across all PCR plates containing the cell line, then the cell is deemed to have failed at the pert plate (set of replicates that may be across PCR plate) level. Log2-viability data from passing cell lines are provided in downloads files. 
 
 * The cell line is sufficiently abundant in the negative control condition (`nc_raw_counts_threshold`). In particular, a cell line needs to have a median raw count > 40 across negative control wells on the PCR plate
 
-* Cell line variability (`nc_variability_threshold`) is low, i.e, the Median Absolute Deviation (MAD) of the log2-normalized counts of the cell line in negative control wells on the PCR plate is < 1
+* Cell line variability (`nc_variability_threshold`) is low, i.e, the Median Absolute Deviation (MAD) of the log2-normalized counts of the cell line in negative control wells on the PCR plate is < a threshold determined based on the experimental design. For example, this threshold = 1 for MTS and APS screens and 1.5 for EPS since it has more replicates
 
 * The cell line is killed sufficiently in positive control (`pc_viability_threshold`), i.e., the median cell line viability across positive control wells on the PCR plate < 0.25
 
@@ -203,13 +207,14 @@ The following three metrics define PCR well failure on a particular PCR plate. P
 
 ### Description
 
-A PRISM screen incorporates multiple types of replicates to enhance the reliability, generalizability, and quality control of the results.
+A PRISM screen may incorporate multiple types of replicates that is denoted as below:
 
 * **Biological replicates** (`bio_rep`) represent independent extractions of the same cell lines, all subjected to identical experimental conditions.
 
 * **Technical replicates** (`tech_rep`) are repeated PCR reactions of the same biological sample under the same treatment conditions. 
 
-Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc/compute_l2fc.R`) first takes the average across technical replicates. The mean is taken since there are typically fewer technical replicates than biological replicates and there is less variability between technical replicates. Finally, log2 fold change is computed by comparing the means to the medians of the negative control samples, using the formula:
+Sushi first computes log2 fold changes (L2FCs) across technical replicates and then collapses these values into a summary for each biological replicate. To quantify cell line growth and sensitivity to treatments, the **compute_l2fc** (`sushi/scripts/compute_l2fc/compute_l2fc.R`) first computes the mean normalized counts across technical replicates since there is less variability between technical replicates compared to biological replicates. Then, log2 fold change is computed by comparing these means to those of the negative control samples, using the formula:
+
 $$
 L2FC_{i,j} = log_2( \frac{x_{t_{i,j}}}{x_{nc_{i,j}}}) 
 $$
@@ -219,7 +224,10 @@ where $i,j$ is cell line $i$ in a treatment condition $j$, $x_t$ is mean normali
 
 ### Example
 
-Here is an example of how to run the compute_l2fc module on your own data. `control_type` is the string designating negative controls wells, `sig_cols` are the variables describing each unique treatment (not including replicates), `count_col_name` is a string of the name of the log2 normalized count column, `count_threshold` is an integer threshold describing low raw cell line counts, and `cell_line_cols` is a vector of columns that designate a unique cell line.
+Here is an example of how to run the compute_l2fc module on your own data. `control_type` is the string designating negative controls wells, `sig_cols` are the variables describing each unique treatment (not including replicates), `ctrl_cols` describes the columns used to match treatment and control samples, `count_col_name` is a string of the name of the log2 normalized count column, `count_threshold` is an integer threshold describing low raw cell line counts, and `cell_line_cols` is a vector of columns that designate a unique cell line.
+
+@UW ctrl cols should have pcr plate or replicate plate or both in it. 
+
 
 ```{r example l2fc, echo = T, eval = F}
 # Load into environment ----
@@ -250,7 +258,7 @@ head(l2fc)
 ```
 
 
-Optional filtering step for removing failed cell lines
+Cell lines that failed QC can be removed from the log fold-change files as described below:
 ```{r l2fc opt filt, echo = T, eval = F}
 qc_path <- data.table::fread("~/Desktop/data/vignette_test_data/data/qc_table.csv")
   
@@ -295,10 +303,9 @@ collapsed_l2fc = collapse_bio_reps(l2fc = l2fc,
 head(collapsed_l2fc)
 ```
 
-## Spliting based on projects
+## Splitting based on projects
 
-Although Sushi processes the entire screen—including all submitted compounds—in a single batch, collaborators are granted access only to their specific compounds and the screen’s validation compound. The PRISM Portal supports this internally by generating separate pages for each compound, with access restricted to designated collaborators. This is achieved using the x_project_id and pert_name columns (see definitions in the normalization section).
-Note that this functionality is not handled within Sushi itself but is part of a separate pipeline responsible for building and managing the PRISM Portal pages.
+Although Sushi processes the entire screen—including all submitted compounds—in a single batch up to producing log fold-changes, collaborators are granted access only to data for their specific compounds and the validation compound. The PRISM Portal supports this internally by generating separate pages for each compound, with access restricted to designated collaborators. This functionality is handled within a separate, private pipeline responsible for building and managing the PRISM Portal pages. Downstream analysis modules work on data after splitting.
 
 # Downstream Analysis
 
@@ -315,7 +322,7 @@ $$
 
 ### Additional details
 
-The fit is perform with the following restrictions:
+The fit is performed with the following restrictions:
 
 * For single agent studies, We support the predicted viability to decrease with increasing dose by constraining the slope parameter ($s$ < 1e-5). For combination studies, we relax this slope constraint since the two agents could be antagonistic.
 
@@ -327,7 +334,7 @@ The fit is perform with the following restrictions:
 
 Since the nonlinear optimization underlying the curve fit can return a local optimum, we first fit the data using a number of different optimization methods and initial conditions implemented in the `drc` and `dr4pl` packages, and then report the fit with the smallest mean squared error (MSE). The `dr4pl` package provides a robust fit in some scenarios where the naive fit fails to converge.
 
-The Area Under Curve (AUC) values are computed for each dose-response curve by integrating the numerical fit. IC50 values are computed only for the curves that drop below 50% viability. The Riemann AUC (AUCr) values are computed from the data points directly as the Riemann sum of the viabilities capped at 1:
+The Area Under Curve (AUC) values are computed for each dose-response curve by integrating the numerical fit. IC50 values are computed only for the curves where have data for more than 5 doses that drop below 50% viability. The Riemann AUC (AUCr) values are computed from the data points directly as the Riemann sum of the viabilities capped at 1:
 
 $$
 AUC_r = \frac{1}{n} \sum_{i=1}^{n}min(FC_i, 1) 
@@ -386,7 +393,7 @@ If a warning message occurs similar to
 `Error in optim(startVec, opfct, hessian = TRUE, method = "L-BFGS-B", `
 `lower = lowerLimits,  : L-BFGS-B needs finite values of 'fn'`
 
-it is due to issues relating to the initialization of the optimization of the fit, but it does not mean that the fit failed. 
+it indicates issues relating to some initializations in the optimization of the fit, but it does not mean that the fit failed. 
 
 Here is an example of a dose response curves
 ```{r drc plot, echo = T, eval = T}
@@ -437,7 +444,8 @@ drc_plot <- ggplot() +
   geom_point(data = l2fc, aes(x = pert_dose, y = viability, color = line_annot, group = depmap_id), alpha = 0.6) +
   scale_x_log10(breaks = x_axis_breaks) +
   geom_vline(data = dose_response, aes(xintercept = inflection, color = line_annot), linetype = "dashed") +
-  labs(title = "Dose-Response Curves",
+  coord_cartesian(ylim = c(0, 1.5))
+  labs(title = "Dose-Response Curves of a BRAF mutant and WT",
        x = "Doses",
        y = "Response",
        color = "Cell line annotation") +
@@ -474,7 +482,15 @@ drc_table %>%
 
 #### Description
 
-For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, gene expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
+For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, gene expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. (The regression coefficient equals the difference in means of the two groups.) Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
+
+
+@UW I think it is important to change the aspect ratio of the volcano plots I think its okay to use facet_wrap with multiple columns to make the  aspect ratio of each plot better. In future versions, we should try out a better visualization for some of this. But for now, in the interest of time, just aspect ratio fixing shuld be fine
+
+
+@UW Can you add arrange(qval) when printing out the two biomarker files using head( ) below
+
+
 
 #### Example
 
@@ -591,8 +607,9 @@ biomarkers_auc <- univariate_biomarker_table(
   file = depmap_file_path,
   features = select_features)
 
-head(biomarkers_auc)
+head(biomarkers_auc )
 ```
+
 
 ### Multivariate biomarker analysis {.tabset}
 
