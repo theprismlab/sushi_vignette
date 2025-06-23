@@ -61,22 +61,18 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 # Sushi pipeline overview
-**Sushi** is the PRISM data processing pipeline that converts raw PRISM barcode counts, obtained from sequencing data, into normalized counts and log2 fold changes (L2FCs). A quick overview of the key parts of the pipeline is described below. First, in the **collate_counts** module, raw counts of PRISM barcodes from individual flow cells and flow cell lanes are aggregated appropriately. The **filter_counts** module maps each barcode to its corresponding cell line or control barcode identity and removes any spurious barcodes. The **normalize** module then normalizes raw cell line counts using spiked-in control barcodes to control for variability in PCR or DNA concentration. Next, **compute_l2fc** calculates L2FCs for each cell line in each treatment replicate. Treatment replicates are further collapsed in **collapse_replicates**, which computes L2FCs across replicates. The **qc_tables** module then performs quality control to flag low quality pcr wells or cell lines, with poorly performing wells being removed from the normalized counts file and unreliable cell lines being removed from the log fold change file. The **dose_response** module fits dose–response curves using cell line viability (2^L2FC) for each treatment, and uses this to compute AUC (Area Under Curve) values. Finally, univariate and multivariate associations between L2FC/AUCs values and DepMap feature data are performed in the **biomarker** module. The output files containing normalized counts, LFC, and collapsed LFC are partitioned by collaborator, then used for downstream dose-response and biomarker analysis (@UW: if we include this part, should specify that the DRC/biomarker here is the same as mentioned above) and shared via the PRISM Portal.
+**Sushi** is the PRISM data processing pipeline that converts raw PRISM barcode counts, obtained from sequencing data, into normalized counts and log2 fold changes (L2FCs). A quick overview of the key parts of the pipeline is described below. First, in the **collate_counts** module, raw counts of PRISM barcodes from individual flow cells and flow cell lanes are aggregated appropriately. The **filter_counts** module maps each barcode to its corresponding cell line or control barcode identity and removes any spurious barcodes. The **normalize** module then normalizes raw cell line counts using spiked-in control barcodes to control for variability in PCR or DNA concentration. Next, **compute_l2fc** calculates L2FCs for each cell line in each treatment replicate. Treatment replicates are further collapsed in **collapse_replicates**, which computes L2FCs across replicates. The **qc_tables** module then performs quality control to flag low quality pcr wells or cell lines, with poorly performing wells being removed from the normalized counts file and unreliable cell lines being removed from the log fold change file. The **dose_response** module fits dose–response curves using cell line viability (2^L2FC) for each treatment, and uses this to compute AUC (Area Under Curve) values. Finally, univariate and multivariate associations between L2FC/AUCs values and DepMap feature data are performed in the **biomarker** module. The output files containing normalized counts, LFC, and collapsed LFC are partitioned by collaborator, then used for downstream dose-response and biomarker analysis.
 
-@UW: please update image below to have the names corresponding to the sushi modules. Would be nice to add a QC module box in this visual as well (it will have multiple in/out arrows, so it can be a little out of the line).Also, filtering of cell lines happens in QC rather than in compute_l2fc. 
+@UW: please update image below to have the names corresponding to the sushi modules. Would be nice to add a QC module box in this visual as well (it will have multiple in/out arrows, so it can be a little out of the line). Also, filtering of cell lines happens in QC rather than in compute_l2fc. 
 ![](images/sushi_workflow.png)
 
 **Details about Sushi output files, including column definitions, can be found in the accompanying spreadsheet:** `Sushi metadata files and column definitions.xlsx`. 
 
-
-
-
 # Getting started with Sushi
 **Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. The sushi pipeline github repository can be found at <https://github.com/cmap/sushi/tree/main>
-It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to sequentially (@UW: these bash scripts do not have an impact on execution order, that's the launch_job script) execute each pipeline step, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s main function (@UW: functions). All three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder. This vignette is located in the `sushi/vignette/` folder.
+It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to launch the module, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s function(s). All three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder. This vignette is located in the `sushi/vignette/` folder.
 
-This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded <here>
-@UW update link.
+This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded <at this S3 link with a download>
 
 Sushi uses a few important groups of columns during data processing. It is helpful to be familiar with these columns to follow the data processing steps. These are:
 `cell_line_cols`: columns used to identify a unique instance of a barcoded cell line. These are `depmap_id`, `lua`, `pool_id`, and `cell_set`;
@@ -111,13 +107,11 @@ To correct for amplification differences between wells, control barcodes at fixe
 
 For each combination of PCR plate, PCR well, and control barcode dosage: the dose intercept (`dose_intercept`) is the difference between the mean known log2 dose of the control barcode and the mean log2 raw count (plus a pseudocount). Then, for each PCR plate and PCR well, compute the control barcode intercept (`cb_intercept`) as the median of the dose intercepts across all control barcodes in that well.
 
-You may recreate the necessary input from your level 3 data or normalized and raw counts data download found on your PRISM Portal page and using the following commands in your terminal window:
-@UW what commands do you mean here? Is it the next example?
+You may recreate the necessary input from your level 3 data or normalized and raw counts data download found on your PRISM Portal page and using the downloadable excel sheet to ensure necessary columns in your input files:
 
 ### Example
 
 Here, we describe an example of how to test run module on your own data from the PRISM portal. Although `filtered_counts.csv` and `CB_meta.csv` are not provided, they can be made from the normalized data download and the data column definition spreadsheet as a reference. The `pseudocount` is a count we add to raw counts when taking the log2 transform. `input_id_cols` is a vector of column identifying unique samples.
-@UW: If they dont the files for running this function, we need to either provide code to make those files or describe how to make them.
 
 ```{r example normalization, echo = T, eval = T}
 # Load into environment ----
@@ -226,8 +220,6 @@ where $i,j$ is cell line $i$ in a treatment condition $j$, $x_t$ is mean normali
 
 Here is an example of how to run the compute_l2fc module on your own data. `control_type` is the string designating negative controls wells, `sig_cols` are the variables describing each unique treatment (not including replicates), `ctrl_cols` describes the columns used to match treatment and control samples, `count_col_name` is a string of the name of the log2 normalized count column, `count_threshold` is an integer threshold describing low raw cell line counts, and `cell_line_cols` is a vector of columns that designate a unique cell line.
 
-@UW ctrl cols should have pcr plate or replicate plate or both in it. 
-
 
 ```{r example l2fc, echo = T, eval = F}
 # Load into environment ----
@@ -240,7 +232,7 @@ source("~/Desktop/sushi/scripts/compute_l2fc/compute_l2fc_functions.R")
 normalized_counts <- data.table::fread("~/Desktop/data/vignette_test_data/data/normalized_counts.csv")
 control_type <- "ctl_vehicle"
 sig_cols <- c("cell_set","pert_name","pert_dose","pert_dose_unit","day")
-ctrl_cols <- c("cell_set", "day")
+ctrl_cols <- c("cell_set", "day", "pcr_plate", "replicate_plate")
 count_col_name <- "log2_normalized_n"
 count_threshold <- 40
 cell_line_cols <- c("lua", "depmap_id", "pool_id")
@@ -455,8 +447,12 @@ print(drc_plot)
 ```
 
 ### Lineage enrichment boxplots
+
+Using more cell lines from the dose-response results in conjunction with the lineage information in the available h5 file (more information in the biomarker section), you can recreate the lineage enrichment boxplots seen on the PRISM portla by plotting lineages and the cell line's AUC.
+
 ```{r example univariate lineage boxplots, echo = T, eval = T}
 drc_table = data.table::fread("~/Desktop/data/vignette_test_data/data/drc_table.csv")
+depmap_file_path <- "~/Desktop/data/vignette_test_data/data/prism_biomarker_public_0625.h5"
 
 lineages <- rhdf5::h5read(depmap_file_path, name = "Lineage_Table/table")
 # Strip hdf5 columns of dimensionality before use
@@ -476,25 +472,15 @@ drc_table %>%
 
 ## Identifying biomarkers
 
-@UW: We should add some description of what is contained in the H5 biomarker file, and how we generate it.
-
 ### Univariate biomarker analysis {.tabset}
 
 #### Description
 
 For univariate biomarker analysis with continuous features (e.g. CRISPR dependency, gene expression, etc.), we calculate the Pearson correlation and corresponding p-values. For univariate biomarker analysis with discrete features (e.g. mutations, lineage, etc.), we calculate the effect size as the regression coefficient against the binary feature and provide corresponding p-values. (The regression coefficient equals the difference in means of the two groups.) Multiple hypothesis correction is computed using the Benjamini-Hochberg procedure to provide q-values
 
-
-@UW I think it is important to change the aspect ratio of the volcano plots I think its okay to use facet_wrap with multiple columns to make the  aspect ratio of each plot better. In future versions, we should try out a better visualization for some of this. But for now, in the interest of time, just aspect ratio fixing shuld be fine
-
-
-@UW Can you add arrange(qval) when printing out the two biomarker files using head( ) below
-
-
-
 #### Example
 
-Here is an example of how to run the univariate biomarker function on your data. `depmap_file_path` is a path to the h5 file of public release omics data from DepMap, which can be found for download on the PRISM portal.
+Here is an example of how to run the univariate biomarker function on your data. `depmap_file_path` is a path to the h5 file of public release omics data from DepMap, which can be found for download on the PRISM portal. The h5 file (found in the S3 download) is made by selecting omics datasets from the DepMap 24Q4 public release.
 
 ```{r example univariate biomarker, echo = T, eval = T}
 # Load into environment ----
@@ -539,7 +525,7 @@ biomarkers <- univariate_biomarker_table(
   file = depmap_file_path,
   features = select_features)
 
-head(biomarkers)
+biomarkers %>% arrange(q_val) %>% head()
 ```
 
 ##### Biomarker volcano plots
@@ -574,7 +560,7 @@ for(dataset in c("Expression", "CRISPR", "Mutation")) {
     ggplot() +
     aes(x = !!rlang::sym(x), y = -log(q_val), color = is_top_hit) +
     geom_point(size = 1, alpha = 0.4) +
-    facet_grid(pert_dose~.,) +  
+    facet_grid(~pert_dose,) +  
     geom_text_repel(data = filter(biomarkers_subset, is_top_hit == "Top 10 Hit"),
                     aes(label = feature),
                     size = 3,
@@ -607,7 +593,7 @@ biomarkers_auc <- univariate_biomarker_table(
   file = depmap_file_path,
   features = select_features)
 
-head(biomarkers_auc )
+biomarkers_auc %>% arrange(q_val) %>% head()
 ```
 
 
