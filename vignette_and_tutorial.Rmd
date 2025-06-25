@@ -63,22 +63,21 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 # Sushi pipeline overview
 **Sushi** is the PRISM data processing pipeline that converts raw PRISM barcode counts, obtained from sequencing data, into normalized counts and log2 fold changes (L2FCs). A quick overview of the key parts of the pipeline is described below. First, in the **collate_counts** module, raw counts of PRISM barcodes from individual flow cells and flow cell lanes are aggregated appropriately. The **filter_counts** module maps each barcode to its corresponding cell line or control barcode identity and removes any spurious barcodes. The **normalize** module then normalizes raw cell line counts using spiked-in control barcodes to control for variability in PCR or DNA concentration. Next, **compute_l2fc** calculates L2FCs for each cell line in each treatment replicate. Treatment replicates are further collapsed in **collapse_replicates**, which computes L2FCs across replicates. The **qc_tables** module then performs quality control to flag low quality pcr wells or cell lines, with poorly performing wells being removed from the normalized counts file and unreliable cell lines being removed from the log fold change file. The **dose_response** module fits dose–response curves using cell line viability (2^L2FC) for each treatment, and uses this to compute AUC (Area Under Curve) values. Finally, univariate and multivariate associations between L2FC/AUCs values and DepMap feature data are performed in the **biomarker** module. The output files containing normalized counts, LFC, and collapsed LFC are partitioned by collaborator, then used for downstream dose-response and biomarker analysis.
 
-@UW: please update image below to have the names corresponding to the sushi modules. Would be nice to add a QC module box in this visual as well (it will have multiple in/out arrows, so it can be a little out of the line). Also, filtering of cell lines happens in QC rather than in compute_l2fc. 
 ![](images/sushi_workflow.png)
-
-**Details about Sushi output files, including column definitions, can be found in the accompanying spreadsheet:** `Sushi metadata files and column definitions.xlsx`. 
 
 # Getting started with Sushi
 **Sushi** is the PRISM pipeline designed to process raw barcode counts from sequencing experiments. The sushi pipeline github repository can be found at <https://github.com/cmap/sushi/tree/main>
 It follows a linear structure, with each step implemented as a separate module. Each module includes: (1) a Bash script to launch the module, (2) an R setup script containing the necessary parameters and inputs for the module, and (3) a core R script that defines the module’s function(s). All three scripts are contained in their corresponding folder under the `sushi/scripts/` directory. Common utility functions used across modules are defined in the `sushi/scripts/utils/` folder. This vignette is located in the `sushi/vignette/` folder.
 
-This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded <at this S3 link with a download>
+This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded https://assets.clue.io/vignette_test_data/vignette_test_data.zip
+
+**Details about Sushi output files, including column definitions, can be found in the accompanying spreadsheet:** `Sushi metadata files and column definitions.xlsx`. 
 
 Sushi uses a few important groups of columns during data processing. It is helpful to be familiar with these columns to follow the data processing steps. These are:
 `cell_line_cols`: columns used to identify a unique instance of a barcoded cell line. These are `depmap_id`, `lua`, `pool_id`, and `cell_set`;
 `sig_cols`: columns used to describe each unique treatment condition at the collapsed LFC level (i.e., not including replicates);
 `id_cols` columns identifying each unique PCR sample;
-`control_cols` columns that help identify the appropriate control wells for a given treatment.
+`control_cols` columns that help identify and group appropriate control wells for a given treatment.
 
 
 # Data Processing
@@ -165,7 +164,7 @@ normalized_counts %>%
 
 ### General Description
 
-**Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how many QC metrics are calculated through this code.**
+**Although collaborators are not able to run this module due to its requirement of internal data, they are able to see how QC metrics are calculated through this code.**
 
 At PRISM, we strive to deliver results with great quality and reliability from our screens. Through statistical explorations, our Analytics team has determined these quality control metrics and thresholds to improve the quality of screen results. Filtering cell lines and PCR wells starts with the **qc_tables module** (`sushi/scripts/qc_tables/qc_tables.R`).
 
@@ -221,7 +220,7 @@ where $i,j$ is cell line $i$ in a treatment condition $j$, $x_t$ is mean normali
 Here is an example of how to run the compute_l2fc module on your own data. `control_type` is the string designating negative controls wells, `sig_cols` are the variables describing each unique treatment (not including replicates), `ctrl_cols` describes the columns used to match treatment and control samples, `count_col_name` is a string of the name of the log2 normalized count column, `count_threshold` is an integer threshold describing low raw cell line counts, and `cell_line_cols` is a vector of columns that designate a unique cell line.
 
 
-```{r example l2fc, echo = T, eval = F}
+```{r example l2fc, echo = T, eval = T}
 # Load into environment ----
 require(magrittr)
 require(tidyverse)
@@ -261,8 +260,6 @@ failed_lines_pert_plate = qc_data %>% filter(qc_pass_pert_plate == FALSE) %>% se
 
 l2fc = l2fc %>% anti_join(failed_lines_pert_plate, by= join_cols)
 
-
-head(l2fc)
 ```
 
 ## Collapsing log2 fold changes across replicates {.tabset}
@@ -480,7 +477,7 @@ For univariate biomarker analysis with continuous features (e.g. CRISPR dependen
 
 #### Example
 
-Here is an example of how to run the univariate biomarker function on your data. `depmap_file_path` is a path to the h5 file of public release omics data from DepMap, which can be found for download on the PRISM portal. The h5 file (found in the S3 download) is made by selecting omics datasets from the DepMap 24Q4 public release.
+Here is an example of how to run the univariate biomarker function on your data. `depmap_file_path` is a path to the h5 file of public release omics data from DepMap, which can be found for download on the PRISM portal. The h5 file (found in the S3 download) is made by selecting omics datasets from the DepMap public release.
 
 ```{r example univariate biomarker, echo = T, eval = T}
 # Load into environment ----
