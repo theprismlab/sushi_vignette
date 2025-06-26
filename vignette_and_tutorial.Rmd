@@ -462,8 +462,8 @@ drc_table %>%
   geom_point(alpha = 0.5) +
   theme_minimal() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-  labs(title = "Encorafenib Lineage Enrichment", x = "Lineage")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  labs(title = "Skin lines are more susceptible to Encorafenib", x = "Lineage")
 ```
 
 
@@ -675,6 +675,7 @@ biomarkers_auc <- multivariate_biomarker_table(
   k = k
 )
 
+#most significant biomarkers correlated with AUC
 biomarkers_auc %>% arrange(., -RF.imp.mean) %>% head()
 ```
 
