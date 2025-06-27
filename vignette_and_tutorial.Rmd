@@ -1,7 +1,9 @@
 ---
 title: "PRISM Sushi Vignette and Documentation"
-author: "Ursula Widocki"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+author: 
+  - "PRISM Analytics Team" 
+  - "prism@broadinstitute.org"
+date: "Compiled June 2025"
 output: 
   html_document:
     toc: true
@@ -529,9 +531,14 @@ biomarkers %>% arrange(q_val) %>% head()
 ```{r univar volcano plot, echo = T, eval = T}
 require(ggrepel)
 
+biomarkers %<>% 
+  separate(y, into = trt_cols_lfc, sep = "::") %>% # separate labels
+  filter(pert_dose %in% sort(unique(.$pert_dose), decreasing = TRUE)[1:5]) # subset for clarity
+
 # Expression, CRISPR, and mutation volcano plots ----
 for(dataset in c("Expression", "CRISPR", "Mutation")) {
   
+  # assigns proper x axis for feature sets
   if(dataset %in% c("Expression", "CRISPR")){
     x = "correlation_coef"
   }else if(dataset == "Mutation"){
@@ -541,15 +548,11 @@ for(dataset in c("Expression", "CRISPR", "Mutation")) {
   # Get top 10 hits ----
   top_hits <- biomarkers %>%
     filter(feature_set == dataset) %>%
-    separate(y, into = trt_cols_lfc, sep = "::") %>%
-    filter(pert_name == "ENCORAFENIB") %>%
     arrange(q_val) %>%
     slice_head(n = 10)
   
   biomarkers_subset <- biomarkers %>%
     filter(feature_set == dataset) %>%
-    separate(y, into = trt_cols_lfc, sep = "::") %>%
-    filter(pert_name == "ENCORAFENIB") %>%
     mutate(is_top_hit = ifelse(feature %in% top_hits$feature, "Top 10 Hit", "Other"))
   
   # Create volcano plot ----
