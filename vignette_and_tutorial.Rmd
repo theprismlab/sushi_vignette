@@ -73,7 +73,7 @@ It follows a linear structure, with each step implemented as a separate module. 
 
 This vignette uses data from screening encorafenib in an MTS format screen that can be downloaded https://assets.clue.io/vignette_test_data/vignette_test_data.zip
 
-**Details about Sushi output files, including column definitions, can be found in the accompanying spreadsheet:** `Sushi metadata files and column definitions.xlsx`. 
+**Details about Sushi output files, including column definitions, can be found in the  accompanying spreadsheet: ** https://docs.google.com/spreadsheets/d/1A_9OlCjcTVJIhe1zwQjdcVyT9K3wrL4FMv0HwimZoW4/edit?usp=sharing
 
 Sushi uses a few important groups of columns during data processing. It is helpful to be familiar with these columns to follow the data processing steps. These are:
 `cell_line_cols`: columns used to identify a unique instance of a barcoded cell line. These are `depmap_id`, `lua`, `pool_id`, and `cell_set`;
